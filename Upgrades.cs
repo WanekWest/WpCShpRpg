@@ -3,12 +3,13 @@ using System.Collections;
 using System.Reflection.Metadata;
 using System.Text;
 using static System.Runtime.InteropServices.JavaScript.JSType;
+using static WpCShpRpg.Upgrades;
 
-namespace WpCShpRpg.csshprpg
+namespace WpCShpRpg
 {
-    internal class csshprpg_upgrades
+    public class Upgrades
     {
-        enum struct InternalUpgradeInfo
+        public struct InternalUpgradeInfo
         {
             int index; // index in g_hUpgrades array
             int databaseId; // the upgrade_id in the upgrades table
@@ -59,60 +60,23 @@ namespace WpCShpRpg.csshprpg
         Handle g_hfwdOnUpgradeRegistered;
         Handle g_hfwdOnUpgradeUnregistered;
 
-        void RegisterUpgradeNatives()
-        {
-            CreateNative("SMRPG_RegisterUpgradeType", Native_RegisterUpgradeType);
-            CreateNative("SMRPG_UnregisterUpgradeType", Native_UnregisterUpgradeType);
-            CreateNative("SMRPG_CreateUpgradeConVar", Native_CreateUpgradeConVar);
-
-            // native void SMRPG_SetUpgradeBuySellCallback(char[] shortname, SMRPG_UpgradeQueryCB cb);
-            CreateNative("SMRPG_SetUpgradeBuySellCallback", Native_SetUpgradeBuySellCallback);
-            // native void SMRPG_SetUpgradeActiveQueryCallback(char[] shortname, SMRPG_ActiveQueryCB cb);
-            CreateNative("SMRPG_SetUpgradeActiveQueryCallback", Native_SetUpgradeActiveQueryCallback);
-            CreateNative("SMRPG_SetUpgradeTranslationCallback", Native_SetUpgradeTranslationCallback);
-            CreateNative("SMRPG_SetUpgradeResetCallback", Native_SetUpgradeResetCallback);
-            CreateNative("SMRPG_SetUpgradeDefaultCosmeticEffect", Native_SetUpgradeDefaultCosmeticEffect);
-            CreateNative("SMRPG_UpgradeExists", Native_UpgradeExists);
-            CreateNative("SMRPG_GetUpgradeInfo", Native_GetUpgradeInfo);
-            CreateNative("SMRPG_ResetUpgradeEffectOnClient", Native_ResetUpgradeEffectOnClient);
-            CreateNative("SMRPG_RunUpgradeEffect", Native_RunUpgradeEffect);
-
-            CreateNative("SMRPG_CheckUpgradeAccess", Native_CheckUpgradeAccess);
-        }
-
-        void RegisterUpgradeForwards()
-        {
-            g_hfwdOnUpgradeEffect = CreateGlobalForward("SMRPG_OnUpgradeEffect", ET_Hook, Param_Cell, Param_String, Param_Cell);
-            g_hfwdOnUpgradeSettingsChanged = CreateGlobalForward("SMRPG_OnUpgradeSettingsChanged", ET_Ignore, Param_String);
-            g_hfwdOnUpgradeRegistered = CreateGlobalForward("SMRPG_OnUpgradeRegistered", ET_Ignore, Param_String);
-            g_hfwdOnUpgradeUnregistered = CreateGlobalForward("SMRPG_OnUpgradeUnregistered", ET_Ignore, Param_String);
-        }
-
         void InitUpgrades()
         {
             g_hUpgrades = new ArrayList(sizeof(InternalUpgradeInfo));
         }
 
-        // native void SMRPG_RegisterUpgradeType(char[] name, char[] shortname, char[] description, int maxlevelbarrier, bool bDefaultEnable, int iDefaultMaxLevel, int iDefaultStartCost, int iDefaultCostInc, int iAdminFlags=0, SMRPG_UpgradeQueryCB querycb, SMRPG_ActiveQueryCB activecb);
-        public int Native_RegisterUpgradeType(Handle plugin, int numParams)
+        // native void SMRPG_RegisterUpgradeType(const char[] name, const char[] shortname, const char[] description, int maxlevelbarrier, bool bDefaultEnable, int iDefaultMaxLevel, int iDefaultStartCost, int iDefaultCostInc, int iAdminFlags=0, SMRPG_UpgradeQueryCB querycb, SMRPG_ActiveQueryCB activecb);
+        public int Native_RegisterUpgradeType(string Name, string ShortName, string Description, int iMaxLevelBarrier, bool bDefaultEnable
+            , int iDefaultMaxLevel, int iDefaultStartCost, int iDefaultCostInc, int iDefaultAdminFlags, Function queryCallback, Function activeCallback)
         {
-            int len;
-            GetNativeStringLength(1, len);
-            char[] sName = new char[len + 1];
-            GetNativeString(1, sName, len + 1);
-
-            GetNativeStringLength(2, len);
-            char[] sShortName = new char[len + 1];
-            GetNativeString(2, sShortName, len + 1);
-
             // There already is an upgrade with that name loaded. Don't load it twice. shortnames have to be unique.
             InternalUpgradeInfo upgrade;
             bool bAlreadyLoaded;
-            if (GetUpgradeByShortname(sShortName, upgrade))
+            if (GetUpgradeByShortname(ShortName, upgrade))
             {
                 if (IsValidUpgrade(upgrade) && upgrade.plugin != plugin)
                 {
-                    char sPluginName[32] = "Unloaded";
+                    string sPluginName = "Unloaded";
                     GetPluginInfo(upgrade.plugin, PlInfo_Name, sPluginName, sizeof(sPluginName));
                     return ThrowNativeError(SP_ERROR_NATIVE, "An upgrade with name \"%s\" is already registered by plugin \"%s\".", sShortName, sPluginName);
                 }
@@ -121,19 +85,6 @@ namespace WpCShpRpg.csshprpg
             }
 
             bool bWasUnavailable = upgrade.unavailable;
-
-            GetNativeStringLength(3, len);
-            char[] sDescription = new char[len + 1];
-            GetNativeString(3, sDescription, len + 1);
-
-            int iMaxLevelBarrier = GetNativeCell(4);
-            bool bDefaultEnable = view_as<bool>(GetNativeCell(5));
-            int iDefaultMaxLevel = GetNativeCell(6);
-            int iDefaultStartCost = GetNativeCell(7);
-            int iDefaultCostInc = GetNativeCell(8);
-            int iDefaultAdminFlags = GetNativeCell(9);
-            Function queryCallback = GetNativeFunction(10);
-            Function activeCallback = GetNativeFunction(11);
 
             if (!bAlreadyLoaded)
             {
@@ -314,7 +265,7 @@ namespace WpCShpRpg.csshprpg
             return 0;
         }
 
-        // native void SMRPG_UnregisterUpgradeType(char[] shortname);
+        // native void SMRPG_UnregisterUpgradeType(const char[] shortname);
         public int Native_UnregisterUpgradeType(Handle plugin, int numParams)
         {
             int len;
@@ -349,7 +300,7 @@ namespace WpCShpRpg.csshprpg
             return ThrowNativeError(SP_ERROR_NATIVE, "No upgrade named \"%s\" loaded.", sShortName);
         }
 
-        // native ConVar SMRPG_CreateUpgradeConVar(char[] shortname, char[] name, char[] defaultValue, char[] description="", flags=0, bool hasMin=false, float min=0.0, bool hasMax=false, float max=0.0);
+        // native ConVar SMRPG_CreateUpgradeConVar(const char[] shortname, const char[] name, const char[] defaultValue, const char[] description="", flags=0, bool hasMin=false, float min=0.0, bool hasMax=false, float max=0.0);
         public int Native_CreateUpgradeConVar(Handle plugin, int numParams)
         {
             int len;
@@ -396,7 +347,7 @@ namespace WpCShpRpg.csshprpg
             return view_as<int>(hCvar);
         }
 
-        // native bool SMRPG_UpgradeExists(char[] shortname);
+        // native bool SMRPG_UpgradeExists(const char[] shortname);
         public int Native_UpgradeExists(Handle plugin, int numParams)
         {
             int len;
@@ -411,7 +362,7 @@ namespace WpCShpRpg.csshprpg
             return IsValidUpgrade(upgrade);
         }
 
-        // native SMRPG_GetUpgradeInfo(char[] shortname, UpgradeInfo upgrade);
+        // native SMRPG_GetUpgradeInfo(const char[] shortname, UpgradeInfo upgrade);
         public int Native_GetUpgradeInfo(Handle plugin, int numParams)
         {
             int len;
@@ -446,7 +397,7 @@ namespace WpCShpRpg.csshprpg
             return 0;
         }
 
-        // native void SMRPG_SetUpgradeBuySellCallback(char[] shortname, SMRPG_UpgradeQueryCB cb);
+        // native void SMRPG_SetUpgradeBuySellCallback(const char[] shortname, SMRPG_UpgradeQueryCB cb);
         public int Native_SetUpgradeBuySellCallback(Handle plugin, int numParams)
         {
             int len;
@@ -467,7 +418,7 @@ namespace WpCShpRpg.csshprpg
             return 0;
         }
 
-        // native void SMRPG_SetUpgradeActiveQueryCallback(char[] shortname, SMRPG_ActiveQueryCB cb);
+        // native void SMRPG_SetUpgradeActiveQueryCallback(const char[] shortname, SMRPG_ActiveQueryCB cb);
         public int Native_SetUpgradeActiveQueryCallback(Handle plugin, int numParams)
         {
             int len;
@@ -488,7 +439,7 @@ namespace WpCShpRpg.csshprpg
             return 0;
         }
 
-        // native void SMRPG_SetUpgradeTranslationCallback(char[] shortname, SMRPG_TranslateUpgrade cb);
+        // native void SMRPG_SetUpgradeTranslationCallback(const char[] shortname, SMRPG_TranslateUpgrade cb);
         public int Native_SetUpgradeTranslationCallback(Handle plugin, int numParams)
         {
             int len;
@@ -509,7 +460,7 @@ namespace WpCShpRpg.csshprpg
             return 0;
         }
 
-        // native void SMRPG_SetUpgradeResetCallback(char[] shortname, SMRPG_ResetEffectCB cb);
+        // native void SMRPG_SetUpgradeResetCallback(const char[] shortname, SMRPG_ResetEffectCB cb);
         public int Native_SetUpgradeResetCallback(Handle plugin, int numParams)
         {
             int len;
@@ -530,7 +481,7 @@ namespace WpCShpRpg.csshprpg
             return 0;
         }
 
-        // native void SMRPG_SetUpgradeDefaultCosmeticEffect(char[] shortname, SMRPG_FX effect, bool bDefaultEnable);
+        // native void SMRPG_SetUpgradeDefaultCosmeticEffect(const char[] shortname, SMRPG_FX effect, bool bDefaultEnable);
         public int Native_SetUpgradeDefaultCosmeticEffect(Handle plugin, int numParams)
         {
             int len;
@@ -580,7 +531,7 @@ namespace WpCShpRpg.csshprpg
             return 0;
         }
 
-        // native SMRPG_ResetUpgradeEffectOnClient(int client, char[] shortname);
+        // native SMRPG_ResetUpgradeEffectOnClient(int client, const char[] shortname);
         public int Native_ResetUpgradeEffectOnClient(Handle plugin, int numParams)
         {
             int client = GetNativeCell(1);
@@ -606,7 +557,7 @@ namespace WpCShpRpg.csshprpg
             return 0;
         }
 
-        // native bool SMRPG_RunUpgradeEffect(int target, char[] shortname, int issuer=-1);
+        // native bool SMRPG_RunUpgradeEffect(int target, const char[] shortname, int issuer=-1);
         public int Native_RunUpgradeEffect(Handle plugin, int numParams)
         {
             int target = GetNativeCell(1);
@@ -663,7 +614,7 @@ namespace WpCShpRpg.csshprpg
             return result < Plugin_Handled;
         }
 
-        // native bool SMRPG_CheckUpgradeAccess(int client, char[] shortname);
+        // native bool SMRPG_CheckUpgradeAccess(int client, const char[] shortname);
         public int Native_CheckUpgradeAccess(Handle plugin, int numParams)
         {
             int client = GetNativeCell(1);
@@ -687,7 +638,7 @@ namespace WpCShpRpg.csshprpg
          */
         // This is called one frame after some upgrade plugin reregistered itself after reload.
         // This way OnLibraryAdded was run completely in the upgrade plugin and all convars and other stuff is initialized correctly.
-        public void RequestFrame_OnFrame(any upgradeindex)
+        public void RequestFrame_OnFrame(var upgradeindex)
         {
             InternalUpgradeInfo upgrade;
             GetUpgradeByIndex(upgradeindex, upgrade);
@@ -716,362 +667,362 @@ namespace WpCShpRpg.csshprpg
         /**
          * Helpers
          */
-        int GetUpgradeCount()
+        public int GetUpgradeCount()
         {
             return g_hUpgrades.Length;
         }
 
-        void GetUpgradeByIndex(int iIndex, InternalUpgradeInfo upgrade)
+        public void GetUpgradeByIndex(int iIndex, InternalUpgradeInfo upgrade)
         {
             GetArrayArray(g_hUpgrades, iIndex, upgrade, sizeof(InternalUpgradeInfo));
         }
 
-        bool GetUpgradeByShortname(char[] sShortName, InternalUpgradeInfo upgrade)
-{
-	int iSize = g_hUpgrades.Length;
-	for(int i=0;i<iSize;i++)
-	{
-		GetUpgradeByIndex(i, upgrade);
-		
-		if(StrEqual(upgrade.shortName, sShortName, false))
-		{
-			return true;
-		}
-	}
-	return false;
-}
-
-bool GetUpgradeByDatabaseId(int iDatabaseId, InternalUpgradeInfo upgrade)
-{
-    int iSize = g_hUpgrades.Length;
-    for (int i = 0; i < iSize; i++)
-    {
-        GetUpgradeByIndex(i, upgrade);
-
-        if (upgrade.databaseId == iDatabaseId)
+        public bool GetUpgradeByShortname(string sShortName, InternalUpgradeInfo upgrade)
         {
-            return true;
+            int iSize = g_hUpgrades.Length;
+            for (int i = 0; i < iSize; i++)
+            {
+                GetUpgradeByIndex(i, upgrade);
+
+                if (string.Equals(upgrade.shortName, sShortName, false))
+                {
+                    return true;
+                }
+            }
+            return false;
         }
-    }
-    return false;
-}
 
-int GetUpgradeCost(int iItemIndex, int iLevel)
-{
-    InternalUpgradeInfo upgrade;
-    GetUpgradeByIndex(iItemIndex, upgrade);
-    if (iLevel <= 1)
-        return upgrade.startCost;
-    else
-        return upgrade.startCost + upgrade.incCost * (iLevel - 1);
-}
+        public bool GetUpgradeByDatabaseId(int iDatabaseId, InternalUpgradeInfo upgrade)
+        {
+            int iSize = g_hUpgrades.Length;
+            for (int i = 0; i < iSize; i++)
+            {
+                GetUpgradeByIndex(i, upgrade);
 
-int GetUpgradeSale(int iItemIndex, int iLevel)
-{
-    int iCost = GetUpgradeCost(iItemIndex, iLevel);
+                if (upgrade.databaseId == iDatabaseId)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
 
-    float fSalePercent = g_hCVSalePercent.FloatValue;
-    if (fSalePercent == 1.0)
-        return iCost;
+        int GetUpgradeCost(int iItemIndex, int iLevel)
+        {
+            InternalUpgradeInfo upgrade;
+            GetUpgradeByIndex(iItemIndex, upgrade);
+            if (iLevel <= 1)
+                return upgrade.startCost;
+            else
+                return upgrade.startCost + upgrade.incCost * (iLevel - 1);
+        }
 
-    if (iLevel <= 1)
-        return iCost;
+        int GetUpgradeSale(int iItemIndex, int iLevel)
+        {
+            int iCost = GetUpgradeCost(iItemIndex, iLevel);
 
-    int iSale = RoundToFloor(float(iCost) * (fSalePercent > 1.0 ? (fSalePercent / 100.0) : fSalePercent) + 0.5);
-    int iCreditsInc = g_hCVCreditsInc.IntValue;
-    if (iCreditsInc <= 1)
-        return iSale;
-    else
-        iSale = (iSale + RoundToFloor(float(iCreditsInc) / 2.0)) / iCreditsInc * iCreditsInc;
+            float fSalePercent = g_hCVSalePercent.FloatValue;
+            if (fSalePercent == 1.0)
+                return iCost;
 
-    if (iSale > iCost)
-        return iCost;
+            if (iLevel <= 1)
+                return iCost;
 
-    return iSale;
-}
+            int iSale = RoundToFloor(float(iCost) * (fSalePercent > 1.0 ? (fSalePercent / 100.0) : fSalePercent) + 0.5);
+            int iCreditsInc = g_hCVCreditsInc.IntValue;
+            if (iCreditsInc <= 1)
+                return iSale;
+            else
+                iSale = (iSale + RoundToFloor(float(iCreditsInc) / 2.0)) / iCreditsInc * iCreditsInc;
 
-bool IsValidUpgrade(InternalUpgradeInfo upgrade)
-{
-    // This plugin is available (again)?
-    bool bUnavailable = !IsValidPlugin(upgrade.plugin);
-    if (upgrade.unavailable != bUnavailable)
-    {
-        upgrade.unavailable = bUnavailable;
-        SaveUpgradeConfig(upgrade);
-    }
-    return !upgrade.unavailable;
-}
+            if (iSale > iCost)
+                return iCost;
 
-void SaveUpgradeConfig(InternalUpgradeInfo upgrade)
-{
-    g_hUpgrades.SetArray(upgrade.index, upgrade, sizeof(InternalUpgradeInfo));
-}
+            return iSale;
+        }
 
-bool IsUpgradeEffectActive(int client, InternalUpgradeInfo upgrade)
-{
-    if (!IsValidUpgrade(upgrade))
-        return false;
+        bool IsValidUpgrade(InternalUpgradeInfo upgrade)
+        {
+            // This plugin is available (again)?
+            bool bUnavailable = !IsValidPlugin(upgrade.plugin);
+            if (upgrade.unavailable != bUnavailable)
+            {
+                upgrade.unavailable = bUnavailable;
+                SaveUpgradeConfig(upgrade);
+            }
+            return !upgrade.unavailable;
+        }
 
-    // See if the whole plugin is active at all.
-    if (!SMRPG_IsEnabled())
-        return false;
+        void SaveUpgradeConfig(InternalUpgradeInfo upgrade)
+        {
+            g_hUpgrades.SetArray(upgrade.index, upgrade, sizeof(InternalUpgradeInfo));
+        }
 
-    // See if the upgrade is disabled for all players.
-    if (!upgrade.enabled)
-        return false;
+        bool IsUpgradeEffectActive(int client, InternalUpgradeInfo upgrade)
+        {
+            if (!IsValidUpgrade(upgrade))
+                return false;
 
-    // See if the player is a bot and RPG is disabled for bots.
-    if (IgnoreBotPlayer(client))
-        return false;
+            // See if the whole plugin is active at all.
+            if (!SMRPG_IsEnabled())
+                return false;
 
-    // Won't be active, if we don't know if he has it yet.
-    if (!IsPlayerDataLoaded(client))
-        return false;
+            // See if the upgrade is disabled for all players.
+            if (!upgrade.enabled)
+                return false;
 
-    // Client didn't buy the upgrade yet?
-    if (GetClientSelectedUpgradeLevel(client, upgrade.index) <= 0)
-        return false;
+            // See if the player is a bot and RPG is disabled for bots.
+            if (IgnoreBotPlayer(client))
+                return false;
 
-    // Not active, if the client has the upgrade disabled himself.
-    if (!IsClientUpgradeEnabled(client, upgrade.index))
-        return false;
+            // Won't be active, if we don't know if he has it yet.
+            if (!IsPlayerDataLoaded(client))
+                return false;
 
-    // Can't be active if client isn't in the team this upgrade is locked to.
-    if (!IsClientInLockedTeam(client, upgrade))
-        return false;
+            // Client didn't buy the upgrade yet?
+            if (GetClientSelectedUpgradeLevel(client, upgrade.index) <= 0)
+                return false;
 
-    // Can't be active if the client doesn't have the permissions.
-    if (!HasAccessToUpgrade(client, upgrade))
-        return false;
+            // Not active, if the client has the upgrade disabled himself.
+            if (!IsClientUpgradeEnabled(client, upgrade.index))
+                return false;
 
-    // Passive upgrades are always on once the player has at least level 1.
-    if (upgrade.activeCallback == INVALID_FUNCTION)
-        return true;
+            // Can't be active if client isn't in the team this upgrade is locked to.
+            if (!IsClientInLockedTeam(client, upgrade))
+                return false;
 
-    // Ask the plugin itself now.
-    bool bActive;
-    Call_StartFunction(upgrade.plugin, upgrade.activeCallback);
-    Call_PushCell(client);
-    Call_Finish(bActive);
+            // Can't be active if the client doesn't have the permissions.
+            if (!HasAccessToUpgrade(client, upgrade))
+                return false;
 
-    return bActive;
-}
+            // Passive upgrades are always on once the player has at least level 1.
+            if (upgrade.activeCallback == INVALID_FUNCTION)
+                return true;
 
-bool HasAccessToUpgrade(int client, InternalUpgradeInfo upgrade)
-{
-    char sFlag[MAX_UPGRADE_SHORTNAME_LENGTH + 15];
-    Format(sFlag, sizeof(sFlag), "smrpg_upgrade_%s", upgrade.shortName);
+            // Ask the plugin itself now.
+            bool bActive;
+            Call_StartFunction(upgrade.plugin, upgrade.activeCallback);
+            Call_PushCell(client);
+            Call_Finish(bActive);
 
-    // Don't allow this client to use the upgrade, if he doesn't have the required admin flag.
-    return CheckCommandAccess(client, sFlag, upgrade.adminFlag, true);
-}
+            return bActive;
+        }
 
-// Checks whether a client is in the correct team, if the upgrade is locked to one.
-bool IsClientInLockedTeam(int client, InternalUpgradeInfo upgrade)
-{
-    // This upgrade isn't locked at all. No restriction.
-    if (upgrade.teamlock <= 1)
-        return true;
+        bool HasAccessToUpgrade(int client, InternalUpgradeInfo upgrade)
+        {
+            char sFlag[MAX_UPGRADE_SHORTNAME_LENGTH + 15];
+            Format(sFlag, sizeof(sFlag), "smrpg_upgrade_%s", upgrade.shortName);
 
-    int iTeam = GetClientTeam(client);
-    // Always grant access to all upgrades, if the player is in spectator mode.
-    if (iTeam <= 1)
-        return true;
+            // Don't allow this client to use the upgrade, if he doesn't have the required admin flag.
+            return CheckCommandAccess(client, sFlag, upgrade.adminFlag, true);
+        }
 
-    // See if the player is in the allowed team.
-    return iTeam == upgrade.teamlock;
-}
+        // Checks whether a client is in the correct team, if the upgrade is locked to one.
+        bool IsClientInLockedTeam(int client, InternalUpgradeInfo upgrade)
+        {
+            // This upgrade isn't locked at all. No restriction.
+            if (upgrade.teamlock <= 1)
+                return true;
 
-void GetUpgradeTranslatedName(int client, int iUpgradeIndex, char[] name, int maxlen)
-{
-    InternalUpgradeInfo upgrade;
-    GetUpgradeByIndex(iUpgradeIndex, upgrade);
+            int iTeam = GetClientTeam(client);
+            // Always grant access to all upgrades, if the player is in spectator mode.
+            if (iTeam <= 1)
+                return true;
 
-    strcopy(name, maxlen, upgrade.name);
+            // See if the player is in the allowed team.
+            return iTeam == upgrade.teamlock;
+        }
 
-    // No translation callback registered? Fall back to the name set when registering the upgrade.
-    if (upgrade.translationCallback == INVALID_FUNCTION)
-        return;
+        void GetUpgradeTranslatedName(int client, int iUpgradeIndex, char[] name, int maxlen)
+        {
+            InternalUpgradeInfo upgrade;
+            GetUpgradeByIndex(iUpgradeIndex, upgrade);
 
-    Call_StartFunction(upgrade.plugin, upgrade.translationCallback);
-    Call_PushCell(client);
-    Call_PushString(upgrade.shortName);
-    Call_PushCell(TranslationType_Name);
-    Call_PushStringEx(name, maxlen, SM_PARAM_STRING_UTF8 | SM_PARAM_STRING_COPY, SM_PARAM_COPYBACK);
-    Call_PushCell(maxlen);
-    Call_Finish();
-}
+            strcopy(name, maxlen, upgrade.name);
 
-void GetUpgradeTranslatedDescription(int client, int iUpgradeIndex, char[] description, int maxlen)
-{
-    InternalUpgradeInfo upgrade;
-    GetUpgradeByIndex(iUpgradeIndex, upgrade);
+            // No translation callback registered? Fall back to the name set when registering the upgrade.
+            if (upgrade.translationCallback == INVALID_FUNCTION)
+                return;
 
-    strcopy(description, maxlen, upgrade.description);
+            Call_StartFunction(upgrade.plugin, upgrade.translationCallback);
+            Call_PushCell(client);
+            Call_PushString(upgrade.shortName);
+            Call_PushCell(TranslationType_Name);
+            Call_PushStringEx(name, maxlen, SM_PARAM_STRING_UTF8 | SM_PARAM_STRING_COPY, SM_PARAM_COPYBACK);
+            Call_PushCell(maxlen);
+            Call_Finish();
+        }
 
-    // No translation callback registered? Fall back to the name set when registering the upgrade.
-    if (upgrade.translationCallback == INVALID_FUNCTION)
-        return;
+        void GetUpgradeTranslatedDescription(int client, int iUpgradeIndex, char[] description, int maxlen)
+        {
+            InternalUpgradeInfo upgrade;
+            GetUpgradeByIndex(iUpgradeIndex, upgrade);
 
-    Call_StartFunction(upgrade.plugin, upgrade.translationCallback);
-    Call_PushCell(client);
-    Call_PushString(upgrade.shortName);
-    Call_PushCell(TranslationType_Description);
-    Call_PushStringEx(description, maxlen, SM_PARAM_STRING_UTF8 | SM_PARAM_STRING_COPY, SM_PARAM_COPYBACK);
-    Call_PushCell(maxlen);
-    Call_Finish();
-}
+            strcopy(description, maxlen, upgrade.description);
 
-void CallUpgradeRegisteredForward(char[] sShortName)
+            // No translation callback registered? Fall back to the name set when registering the upgrade.
+            if (upgrade.translationCallback == INVALID_FUNCTION)
+                return;
+
+            Call_StartFunction(upgrade.plugin, upgrade.translationCallback);
+            Call_PushCell(client);
+            Call_PushString(upgrade.shortName);
+            Call_PushCell(TranslationType_Description);
+            Call_PushStringEx(description, maxlen, SM_PARAM_STRING_UTF8 | SM_PARAM_STRING_COPY, SM_PARAM_COPYBACK);
+            Call_PushCell(maxlen);
+            Call_Finish();
+        }
+
+        void CallUpgradeRegisteredForward(const char[] sShortName)
 {
     // Inform other plugins, that this upgrade is loaded.
     Call_StartForward(g_hfwdOnUpgradeRegistered);
-    Call_PushString(sShortName);
-    Call_Finish();
-}
+        Call_PushString(sShortName);
+        Call_Finish();
+    }
 
-/**
- * Convar change callbacks
- */
-// Cache the new config value
-public void ConVar_UpgradeChanged(ConVar convar, char[] oldValue, char[] newValue)
-{
-    int iSize = g_hUpgrades.Length;
-    InternalUpgradeInfo upgrade;
-    for (int i = 0; i < iSize; i++)
+    /**
+     * Convar change callbacks
+     */
+    // Cache the new config value
+    public void ConVar_UpgradeChanged(ConVar convar, const char[] oldValue, const char[] newValue)
     {
-        GetUpgradeByIndex(i, upgrade);
+        int iSize = g_hUpgrades.Length;
+        InternalUpgradeInfo upgrade;
+        for (int i = 0; i < iSize; i++)
+        {
+            GetUpgradeByIndex(i, upgrade);
 
-        if (upgrade.enableConvar == convar)
-        {
-            upgrade.enabled = convar.BoolValue;
-            SaveUpgradeConfig(upgrade);
-            Call_OnUpgradeSettingsChanged(upgrade.shortName);
-            break;
-        }
-        else if (upgrade.startLevelConvar == convar)
-        {
-            upgrade.startLevel = convar.IntValue;
-            if (upgrade.startLevel > upgrade.maxLevel)
+            if (upgrade.enableConvar == convar)
             {
-                LogError("Upgrade %s smrpg_%s_startlevel convar (%d) is set higher than the maxlevel (%d). Clamping.", upgrade.name, upgrade.shortName, upgrade.startLevel, upgrade.maxLevel);
-                upgrade.startLevel = upgrade.maxLevel;
-
-                // Reflect the cap in the convar value as well.
-                convar.RemoveChangeHook(ConVar_UpgradeChanged);
-                convar.SetInt(upgrade.startLevel);
-                convar.AddChangeHook(ConVar_UpgradeChanged);
+                upgrade.enabled = convar.BoolValue;
+                SaveUpgradeConfig(upgrade);
+                Call_OnUpgradeSettingsChanged(upgrade.shortName);
+                break;
             }
+            else if (upgrade.startLevelConvar == convar)
+            {
+                upgrade.startLevel = convar.IntValue;
+                if (upgrade.startLevel > upgrade.maxLevel)
+                {
+                    LogError("Upgrade %s smrpg_%s_startlevel convar (%d) is set higher than the maxlevel (%d). Clamping.", upgrade.name, upgrade.shortName, upgrade.startLevel, upgrade.maxLevel);
+                    upgrade.startLevel = upgrade.maxLevel;
 
-            SaveUpgradeConfig(upgrade);
-            Call_OnUpgradeSettingsChanged(upgrade.shortName);
-            break;
+                    // Reflect the cap in the convar value as well.
+                    convar.RemoveChangeHook(ConVar_UpgradeChanged);
+                    convar.SetInt(upgrade.startLevel);
+                    convar.AddChangeHook(ConVar_UpgradeChanged);
+                }
+
+                SaveUpgradeConfig(upgrade);
+                Call_OnUpgradeSettingsChanged(upgrade.shortName);
+                break;
+            }
+            else if (upgrade.startCostConvar == convar)
+            {
+                upgrade.startCost = convar.IntValue;
+                SaveUpgradeConfig(upgrade);
+                Call_OnUpgradeSettingsChanged(upgrade.shortName);
+                break;
+            }
+            else if (upgrade.incCostConvar == convar)
+            {
+                upgrade.incCost = convar.IntValue;
+                SaveUpgradeConfig(upgrade);
+                Call_OnUpgradeSettingsChanged(upgrade.shortName);
+                break;
+            }
+            else if (upgrade.adminFlagConvar == convar)
+            {
+                char sValue[30];
+                convar.GetString(sValue, sizeof(sValue));
+                upgrade.adminFlag = ReadFlagString(sValue);
+                SaveUpgradeConfig(upgrade);
+                Call_OnUpgradeSettingsChanged(upgrade.shortName);
+                break;
+            }
+            else if (upgrade.visualsConvar == convar)
+            {
+                upgrade.enableVisuals = convar.BoolValue;
+                SaveUpgradeConfig(upgrade);
+                Call_OnUpgradeSettingsChanged(upgrade.shortName);
+                break;
+            }
+            else if (upgrade.soundsConvar == convar)
+            {
+                upgrade.enableSounds = convar.BoolValue;
+                SaveUpgradeConfig(upgrade);
+                Call_OnUpgradeSettingsChanged(upgrade.shortName);
+                break;
+            }
+            else if (upgrade.botsConvar == convar)
+            {
+                upgrade.allowBots = convar.BoolValue;
+                SaveUpgradeConfig(upgrade);
+                Call_OnUpgradeSettingsChanged(upgrade.shortName);
+                break;
+            }
+            else if (upgrade.teamlockConvar == convar)
+            {
+                upgrade.teamlock = convar.IntValue;
+                // Guarantee to have "0" when disabled.
+                if (upgrade.teamlock == 1)
+                    upgrade.teamlock = 0;
+                SaveUpgradeConfig(upgrade);
+                Call_OnUpgradeSettingsChanged(upgrade.shortName);
+                break;
+            }
         }
-        else if (upgrade.startCostConvar == convar)
+    }
+
+    public void ConVar_UpgradeMaxLevelChanged(ConVar convar, const char[] oldValue, const char[] newValue)
+    {
+        int iSize = g_hUpgrades.Length;
+        InternalUpgradeInfo upgrade;
+        for (int i; i < iSize; i++)
         {
-            upgrade.startCost = convar.IntValue;
-            SaveUpgradeConfig(upgrade);
-            Call_OnUpgradeSettingsChanged(upgrade.shortName);
-            break;
+            GetUpgradeByIndex(i, upgrade);
+
+            if (upgrade.maxLevelConvar == convar)
+                break;
         }
-        else if (upgrade.incCostConvar == convar)
+
+        int iNewMaxLevel = convar.IntValue;
+        int iMaxLevelBarrier = upgrade.maxLevelBarrier;
+
+        if (iMaxLevelBarrier > 0 && !g_hCVIgnoreLevelBarrier.BoolValue && iNewMaxLevel > iMaxLevelBarrier)
         {
-            upgrade.incCost = convar.IntValue;
-            SaveUpgradeConfig(upgrade);
-            Call_OnUpgradeSettingsChanged(upgrade.shortName);
-            break;
+            iNewMaxLevel = iMaxLevelBarrier;
+
+            // Reflect the cap in the convar value.
+            convar.RemoveChangeHook(ConVar_UpgradeMaxLevelChanged);
+            convar.SetInt(iNewMaxLevel);
+            convar.AddChangeHook(ConVar_UpgradeMaxLevelChanged);
         }
-        else if (upgrade.adminFlagConvar == convar)
+
+        upgrade.maxLevel = iNewMaxLevel;
+        SaveUpgradeConfig(upgrade);
+
+        Call_OnUpgradeSettingsChanged(upgrade.shortName);
+
+        for (int i = 1; i <= MaxClients; i++)
         {
-            char sValue[30];
-            convar.GetString(sValue, sizeof(sValue));
-            upgrade.adminFlag = ReadFlagString(sValue);
-            SaveUpgradeConfig(upgrade);
-            Call_OnUpgradeSettingsChanged(upgrade.shortName);
-            break;
+            if (!IsClientInGame(i))
+                continue;
+
+            while (GetClientPurchasedUpgradeLevel(i, upgrade.index) > iNewMaxLevel)
+            {
+                SetClientCredits(i, GetClientCredits(i) + GetUpgradeCost(upgrade.index, GetClientPurchasedUpgradeLevel(i, upgrade.index)));
+                TakeClientUpgrade(i, upgrade.index);
+            }
         }
-        else if (upgrade.visualsConvar == convar)
-        {
-            upgrade.enableVisuals = convar.BoolValue;
-            SaveUpgradeConfig(upgrade);
-            Call_OnUpgradeSettingsChanged(upgrade.shortName);
-            break;
-        }
-        else if (upgrade.soundsConvar == convar)
-        {
-            upgrade.enableSounds = convar.BoolValue;
-            SaveUpgradeConfig(upgrade);
-            Call_OnUpgradeSettingsChanged(upgrade.shortName);
-            break;
-        }
-        else if (upgrade.botsConvar == convar)
-        {
-            upgrade.allowBots = convar.BoolValue;
-            SaveUpgradeConfig(upgrade);
-            Call_OnUpgradeSettingsChanged(upgrade.shortName);
-            break;
-        }
-        else if (upgrade.teamlockConvar == convar)
-        {
-            upgrade.teamlock = convar.IntValue;
-            // Guarantee to have "0" when disabled.
-            if (upgrade.teamlock == 1)
-                upgrade.teamlock = 0;
-            SaveUpgradeConfig(upgrade);
-            Call_OnUpgradeSettingsChanged(upgrade.shortName);
-            break;
-        }
+    }
+
+    void Call_OnUpgradeSettingsChanged(const char[] sShortname)
+    {
+        Call_StartForward(g_hfwdOnUpgradeSettingsChanged);
+        Call_PushString(sShortname);
+        Call_Finish();
     }
 }
-
-public void ConVar_UpgradeMaxLevelChanged(ConVar convar, char[] oldValue, char[] newValue)
-{
-    int iSize = g_hUpgrades.Length;
-    InternalUpgradeInfo upgrade;
-    for (int i; i < iSize; i++)
-    {
-        GetUpgradeByIndex(i, upgrade);
-
-        if (upgrade.maxLevelConvar == convar)
-            break;
-    }
-
-    int iNewMaxLevel = convar.IntValue;
-    int iMaxLevelBarrier = upgrade.maxLevelBarrier;
-
-    if (iMaxLevelBarrier > 0 && !g_hCVIgnoreLevelBarrier.BoolValue && iNewMaxLevel > iMaxLevelBarrier)
-    {
-        iNewMaxLevel = iMaxLevelBarrier;
-
-        // Reflect the cap in the convar value.
-        convar.RemoveChangeHook(ConVar_UpgradeMaxLevelChanged);
-        convar.SetInt(iNewMaxLevel);
-        convar.AddChangeHook(ConVar_UpgradeMaxLevelChanged);
-    }
-
-    upgrade.maxLevel = iNewMaxLevel;
-    SaveUpgradeConfig(upgrade);
-
-    Call_OnUpgradeSettingsChanged(upgrade.shortName);
-
-    for (int i = 1; i <= MaxClients; i++)
-    {
-        if (!IsClientInGame(i))
-            continue;
-
-        while (GetClientPurchasedUpgradeLevel(i, upgrade.index) > iNewMaxLevel)
-        {
-            SetClientCredits(i, GetClientCredits(i) + GetUpgradeCost(upgrade.index, GetClientPurchasedUpgradeLevel(i, upgrade.index)));
-            TakeClientUpgrade(i, upgrade.index);
-        }
-    }
-}
-
-void Call_OnUpgradeSettingsChanged(char[] sShortname)
-{
-    Call_StartForward(g_hfwdOnUpgradeSettingsChanged);
-    Call_PushString(sShortname);
-    Call_Finish();
-}
-    }
 }
