@@ -4,7 +4,7 @@ using MySqlConnector;
 
 namespace WpCShpRpg
 {
-    internal class Database
+    public class Database
     {
         string SMRPG_DB = "cshprpg";
         string TBL_PLAYERS = "players";
@@ -15,14 +15,22 @@ namespace WpCShpRpg
 
         string ConnectionString;
 
-        public Database(string ModulePath)
+        Config config = null;
+        PlayerData playerData = null;
+        Upgrades upgrades = null;
+        Menu menu = null;
+
+        public Database(string ModulePath, Config config, PlayerData playerData, Upgrades upgrades, Menu menu)
         {
             ConnectionString = GetConnectionString(ModulePath);
+            this.config = config;
+            this.playerData = playerData;
+            this.upgrades = upgrades;
+            this.menu = menu;
         }
 
         private string GetConnectionString(string ModulePath)
         {
-            Config config = new();
             var Configuration = config.LoadDatabaseConfig(ModulePath);
 
             if (Configuration.CShpRpgDatabase == null)
@@ -36,7 +44,7 @@ namespace WpCShpRpg
         }
 
         // Создание таблиц.
-        private void InitDatabase()
+        public void InitDatabase()
         {
             using (MySqlConnection connection = new(ConnectionString))
             {
@@ -66,7 +74,7 @@ namespace WpCShpRpg
         }
 
         // Очистка от АФКшников.
-        private void DatabaseMaid(bool g_hCVSaveData, uint g_hCVPlayerExpire)
+        public void DatabaseMaid(bool g_hCVSaveData, uint g_hCVPlayerExpire)
         {
             // Don't touch the database, if we don't want to save any data.
             if (!g_hCVSaveData)
@@ -99,6 +107,8 @@ namespace WpCShpRpg
             if (!g_hCVSaveData)
                 return false;
 
+            PlayerData playerData = new PlayerData();
+
             string sQuery;
             // Delete all player information?
             if (bHardReset)
@@ -119,19 +129,18 @@ namespace WpCShpRpg
                     if (Player != null && Player.IsValid && !Player.IsBot && Player.UserId > 0)
                     {
                         // Keep the original bot names intact, to avoid saving renamed bots.
-                        RemovePlayer(i, true);
-                        InitPlayer(i, false);
+                        playerData.RemovePlayer(i, true, config.g_hCVShowMenuOnLevelDefault, config.g_hCVFadeOnLevelDefault);
+                        playerData.InitPlayer(i, false);
 
-                        if (IsClientAuthorized(i))
-                            InsertPlayer(i);
+                        if (Player.IsValid)
+                            playerData.InsertPlayer(i, config.g_hCVEnable, g_hCVSaveData, config.g_hCVBotSaveStats);
                     }
                 }
             }
             // Keep the player settings
             else
             {
-                int iStartLevel, iStartCredits;
-                GetStartLevelAndExperience(iStartLevel, iStartCredits);
+                uint iStartLevel = config.g_hCVLevelStart, iStartCredits = config.g_hCVCreditsStart;
                 using (MySqlConnection connection = new(ConnectionString))
                 {
                     connection.Open();
@@ -146,12 +155,16 @@ namespace WpCShpRpg
                 }
 
                 // Just reset all ingame players too
-                for (int i = 1; i <= MaxClients; i++)
+                for (int i = 1; i <= Server.MaxPlayers; i++)
                 {
-                    if (IsClientInGame(i))
+                    CCSPlayerController Player = Utilities.GetPlayerFromIndex(i);
+                    if (Player != null && Player.IsValid && !Player.IsBot && Player.UserId > 0)
                     {
-                        ResetStats(i);
-                        SetPlayerLastReset(i, GetTime());
+                        if (Player.IsValid)
+                        {
+                            playerData.ResetStats(i);
+                            playerData.SetPlayerLastReset(i, Server.CurrentTime);
+                        }
                     }
                 }
             }
