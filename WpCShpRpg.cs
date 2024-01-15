@@ -1,5 +1,8 @@
 ﻿using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
+using CounterStrikeSharp.API.Core.Attributes.Registration;
+using CounterStrikeSharp.API.Modules.Commands;
+using CounterStrikeSharp.API.Modules.Menu;
 
 namespace WpCShpRpg
 {
@@ -69,6 +72,100 @@ namespace WpCShpRpg
             RegisterEventHandler<EventPlayerDisconnect>(Event_OnPlayerDisconnect);
         }
 
+
+        [ConsoleCommand("rpgmenu", "Opens the rpg main menu")]
+        public void OnCommandRpgMenu(CCSPlayerController? player, CommandInfo command)
+        {
+            ShowRpgMenu(player);
+        }
+
+        [ConsoleCommand("rpg", "Opens the rpg main menu")]
+        public void OnCommandRpg(CCSPlayerController? player, CommandInfo command)
+        {
+            ShowRpgMenu(player);
+        }
+
+        private void ShowRpgMenu(CCSPlayerController? player)
+        {
+            ChatMenus.OpenMenu(player, menu.RpgMenu);
+        }
+
+        [ConsoleCommand("rpgrank", "Shows your rank or the rank of the target person. rpgrank [name|steamid|#userid]")]
+        public void Cmd_RPGRank(CCSPlayerController? player, CommandInfo command)
+        {
+            CreateRankMenu(player);
+        }
+
+        private void CreateRankMenu(CCSPlayerController? player)
+        {
+            CreateRankMenu(player);
+        }
+
+        [ConsoleCommand("rpginfo", "Shows the purchased upgrades of the target person. rpginfo <name|steamid|#userid>")]
+        public void Cmd_RPGInfo(CCSPlayerController? player, CommandInfo command)
+        {
+            CreateRPGInfoMenu(player);
+        }
+
+        private void CreateRPGInfoMenu(CCSPlayerController? player)
+        {
+
+        }
+
+        [ConsoleCommand("rpgtop10", "Show the SM:RPG top 10")]
+        public void Cmd_RPGTop10(CCSPlayerController? player, CommandInfo command)
+        {
+
+            CreateRPGTop10Menu(player);
+        }
+
+        private void CreateRPGTop10Menu(CCSPlayerController? player)
+        {
+
+        }
+
+        [ConsoleCommand("rpgnext", "Show the next few ranked players before you")]
+        public void Cmd_RPGNext(CCSPlayerController? player, CommandInfo command)
+        {
+            CreateRPGNextMenu(player);
+        }
+
+        private void CreateRPGNextMenu(CCSPlayerController? player)
+        {
+        }
+
+        [ConsoleCommand("rpgsession", "Show your session stats")]
+        public void Cmd_RPGSession(CCSPlayerController? player, CommandInfo command)
+        {
+            CreateRPGSessionMenu(player);
+        }
+
+        private void CreateRPGSessionMenu(CCSPlayerController? player)
+        {
+        }
+
+        [ConsoleCommand("rpghelp", "Show the SM:RPG help menu")]
+        public void Cmd_RPGHelp(CCSPlayerController? player, CommandInfo command)
+        {
+            CreateRPGHelpMenu(player);
+        }
+
+        private void CreateRPGHelpMenu(CCSPlayerController? player)
+        {
+
+        }
+
+        [ConsoleCommand("rpgexp", "Show the latest experience you earned")]
+        public void Cmd_RPGLatestExperience(CCSPlayerController? player, CommandInfo command)
+        {
+            CreateRPGLatestExperienceMenu(player);
+        }
+
+        private void CreateRPGLatestExperienceMenu(CCSPlayerController? player)
+        {
+
+        }
+
         #region Файл исполнения
         private void LoadExecutionFile()
         {
@@ -90,7 +187,8 @@ namespace WpCShpRpg
             Dictionary<string, string> ConfigData = Config.ParseConfigFile(configPath);
             foreach (var kvp in ConfigData)
             {
-                Server.PrintToConsole($"{kvp.Key} {kvp.Value}");
+                // Server.PrintToConsole($"{kvp.Key} {kvp.Value}");
+                Server.ExecuteCommand($"{kvp.Key} {kvp.Value}");
                 Console.WriteLine($"Применено: {kvp.Key}: {kvp.Value}");
             }
 
@@ -126,7 +224,7 @@ namespace WpCShpRpg
 
         public HookResult Event_OnRoundEnd(EventRoundEnd @event, GameEventInfo info)
         {
-            
+
 
             return HookResult.Continue;
         }
