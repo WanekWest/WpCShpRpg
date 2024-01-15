@@ -15,18 +15,35 @@ namespace WpCShpRpg
 
         string ConnectionString;
 
-        Config config = null;
-        PlayerData playerData = null;
-        Upgrades upgrades = null;
-        Menu menu = null;
+        private static Config config = null;
+        private static PlayerData playerData = null;
+        private static Upgrades upgrades = null;
+        private static Menu menu = null;
 
-        public Database(string ModulePath, Config config, PlayerData playerData, Upgrades upgrades, Menu menu)
+        public Database(string ModulePath)
         {
             ConnectionString = GetConnectionString(ModulePath);
-            this.config = config;
-            this.playerData = playerData;
-            this.upgrades = upgrades;
-            this.menu = menu;
+        }
+
+        public void SetUpgrades(Upgrades upgrClass)
+        {
+
+            upgrades = upgrClass;
+        }
+
+        public void SetConfig(Config cfg)
+        {
+            config = cfg;
+        }
+
+        public void SetMenu(Menu mn)
+        {
+            menu = mn;
+        }
+
+        public void SetPlayerData(PlayerData pData)
+        {
+            playerData = pData;
         }
 
         private string GetConnectionString(string ModulePath)
@@ -50,7 +67,7 @@ namespace WpCShpRpg
             {
                 connection.Open();
 
-                string sQuery = $"CREATE TABLE IF NOT EXISTS {TBL_PLAYERS} (player_id INTEGER PRIMARY KEY AUTO_INCREMENT, name VARCHAR(64) NOT NULL DEFAULT ' ', steamid INTEGER DEFAULT NULL UNIQUE, level INTEGER DEFAULT 1, experience INTEGER DEFAULT 0, credits INTEGER DEFAULT 0, showmenu INTEGER DEFAULT 1, fadescreen INTEGER DEFAULT 1, lastseen INTEGER DEFAULT 0, lastreset INTEGER DEFAULT 0) {sExtraOptions}");
+                string sQuery = $"CREATE TABLE IF NOT EXISTS {TBL_PLAYERS} (player_id INTEGER PRIMARY KEY AUTO_INCREMENT, name VARCHAR(64) NOT NULL DEFAULT ' ', steamid INTEGER DEFAULT NULL UNIQUE, level INTEGER DEFAULT 1, experience INTEGER DEFAULT 0, credits INTEGER DEFAULT 0, showmenu INTEGER DEFAULT 1, fadescreen INTEGER DEFAULT 1, lastseen INTEGER DEFAULT 0, lastreset INTEGER DEFAULT 0) {sExtraOptions}";
                 MySqlCommand command = new MySqlCommand(sQuery, connection);
                 command.ExecuteNonQuery();
 
@@ -129,7 +146,7 @@ namespace WpCShpRpg
                     if (Player != null && Player.IsValid && !Player.IsBot && Player.UserId > 0)
                     {
                         // Keep the original bot names intact, to avoid saving renamed bots.
-                        playerData.RemovePlayer(i, true, config.g_hCVShowMenuOnLevelDefault, config.g_hCVFadeOnLevelDefault);
+                        playerData.RemovePlayer(i, config.g_hCVShowMenuOnLevelDefault, config.g_hCVFadeOnLevelDefault, true);
                         playerData.InitPlayer(i, false);
 
                         if (Player.IsValid)
@@ -170,6 +187,18 @@ namespace WpCShpRpg
             }
 
             return true;
+        }
+
+        public void SendQuery(string Query)
+        {
+            using (MySqlConnection connection = new(ConnectionString))
+            {
+                connection.Open();
+                MySqlCommand command = new MySqlCommand(Query, connection);
+                command = new MySqlCommand(Query, connection);
+                command.ExecuteNonQuery();
+                connection.Close();
+            }
         }
     }
 }

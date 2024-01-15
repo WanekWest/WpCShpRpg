@@ -9,11 +9,11 @@ namespace WpCShpRpg
         public override string ModuleName => "WpCShpRPG";
         public override string ModuleVersion => "0.0.1";
 
-        Database database = null;
-        Config config = null;
-        PlayerData playerData = null;
-        Upgrades upgrades = null;
-        Menu menu = null;
+        private static Database database = null;
+        private static Config config = null;
+        private static PlayerData playerData = null;
+        private static Upgrades upgrades = null;
+        private static Menu menu = null;
 
         public override void Load(bool hotReload)
         {
@@ -36,9 +36,30 @@ namespace WpCShpRpg
             // TODO: Регистрация форвардов. 
 
             // TODO: Инициализация настроек, улучшений, базы.
-            database = new Database(ModuleDirectory, config);
+            database = new Database(ModuleDirectory);
             database.InitDatabase();
             database.DatabaseMaid(config.g_hCVSaveData, config.g_hCVPlayerExpire);
+
+            database.SetConfig(config);
+            playerData.SetConfig(config);
+            upgrades.SetConfig(config);
+            menu.SetConfig(config);
+
+            menu.SetDatabase(database);
+            upgrades.SetDatabase(database);
+            playerData.SetDatabase(database);
+
+            menu.SetPlayerData(playerData);
+            upgrades.SetPlayerData(playerData);
+            database.SetPlayerData(playerData);
+
+            database.SetMenu(menu);
+            upgrades.SetMenu(menu);
+            playerData.SetMenu(menu);
+
+            database.SetUpgrades(upgrades);
+            playerData.SetUpgrades(upgrades);
+            menu.SetUpgrades(upgrades);
 
             // TODO: Инициализация файлов перевода.
 

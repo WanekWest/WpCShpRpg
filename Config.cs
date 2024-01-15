@@ -49,7 +49,7 @@ namespace WpCShpRpg
         public uint g_hCVLastExperienceCount { get; private set; }
 
         public uint g_hCVLevelStart { get; private set; }
-        public uint g_hCVLevelStartGiveCredits { get; private set; }
+        public bool g_hCVLevelStartGiveCredits { get; private set; }
 
         public bool g_hCVUpgradeStartLevelsFree { get; private set; }
 
@@ -286,7 +286,7 @@ namespace WpCShpRpg
 
                 if (ConfigData.TryGetValue("csshprpg_level_start_give_credits", out string? g_csshprpg_level_start_give_credits))
                 {
-                    g_hCVLevelStartGiveCredits = uint.Parse(g_csshprpg_level_start_give_credits);
+                    g_hCVLevelStartGiveCredits = bool.Parse(g_csshprpg_level_start_give_credits);
                 }
 
                 if (ConfigData.TryGetValue("csshprpg_upgrade_start_levels_free", out string? g_csshprpg_upgrade_start_levels_free))
