@@ -46,7 +46,7 @@ namespace WpCShpRpg
 
         public uint g_hCVExpTeamwin { get; private set; }
 
-        public uint g_hCVLastExperienceCount { get; private set; }
+        public int g_hCVLastExperienceCount { get; private set; }
 
         public uint g_hCVLevelStart { get; private set; }
         public bool g_hCVLevelStartGiveCredits { get; private set; }
@@ -276,7 +276,7 @@ namespace WpCShpRpg
 
                 if (ConfigData.TryGetValue("csshprpg_lastexperience_count", out string? g_csshprpg_lastexperience_count))
                 {
-                    g_hCVLastExperienceCount = uint.Parse(g_csshprpg_lastexperience_count);
+                    g_hCVLastExperienceCount = int.Parse(g_csshprpg_lastexperience_count);
                 }
 
                 if (ConfigData.TryGetValue("csshprpg_level_start", out string? g_csshprpg_level_start))

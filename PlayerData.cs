@@ -99,6 +99,7 @@ namespace WpCShpRpg
             public ArrayList upgrades;
             public float lastReset;
             public float lastSeen;
+
             public PlayerInfo(uint level, uint experience, uint credits, int dbId, bool showMenuOnLevelup, bool fadeOnLevelup,
             bool dataLoadedFromDB, ArrayList upgrades, float lastReset, float lastSeen)
             {
@@ -115,9 +116,29 @@ namespace WpCShpRpg
             }
         }
 
-        PlayerInfo[] g_iPlayerInfo = new PlayerInfo[Server.MaxPlayers + 1];
-        bool[] g_bFirstLoaded = new bool[Server.MaxPlayers + 1];
-        string[,] g_sOriginalBotName = new string[Server.MaxPlayers + 1, Player.MaxNameLength];
+        public struct SessionStats
+        {
+            public float JoinTime;
+            public uint JoinLevel;
+            public uint JoinExperience;
+            public uint JoinCredits;
+            public int JoinRank;
+            public bool WantsAutoUpdate;
+            public bool WantsMenuOpen;
+            public bool OkToClose;
+            public List<int> LastExperience; // Используем List<int> вместо ArrayList
+
+            public SessionStats()
+            {
+                LastExperience = new List<int>();
+            }
+        }
+
+        public PlayerInfo[] g_iPlayerInfo = new PlayerInfo[Server.MaxPlayers + 1];
+        public SessionStats[] g_iPlayerSessionStartStats = new SessionStats[Server.MaxPlayers + 1];
+        public bool[] g_bFirstLoaded = new bool[Server.MaxPlayers + 1];
+        public string[,] g_sOriginalBotName = new string[Server.MaxPlayers + 1, Player.MaxNameLength];
+        public bool[] g_bBackToStatsMenu = new bool[Server.MaxPlayers + 1];
 
         public void RemovePlayer(int client, bool g_hCVShowMenuOnLevelDefault, bool g_hCVFadeOnLevelDefault, bool bKeepBotName = false)
         {
@@ -315,7 +336,7 @@ namespace WpCShpRpg
             }
         }
 
-        bool GiveClientUpgrade(int client, int iUpgradeIndex)
+        public bool GiveClientUpgrade(int client, int iUpgradeIndex)
         {
             InternalUpgradeInfo upgrade;
             upgrade = upgradesClass.GetUpgradeByIndex(iUpgradeIndex);
@@ -348,7 +369,7 @@ namespace WpCShpRpg
             return true;
         }
 
-        bool BuyClientUpgrade(int client, int iUpgradeIndex)
+        public bool BuyClientUpgrade(int client, int iUpgradeIndex)
         {
             InternalUpgradeInfo upgrade = upgradesClass.GetUpgradeByIndex(iUpgradeIndex);
 
@@ -372,7 +393,7 @@ namespace WpCShpRpg
             return true;
         }
 
-        bool TakeClientUpgrade(int client, int iUpgradeIndex)
+        public bool TakeClientUpgrade(int client, int iUpgradeIndex)
         {
             InternalUpgradeInfo upgrade = upgradesClass.GetUpgradeByIndex(iUpgradeIndex);
 
@@ -402,7 +423,7 @@ namespace WpCShpRpg
             return true;
         }
 
-        bool SellClientUpgrade(int client, int iUpgradeIndex)
+        public bool SellClientUpgrade(int client, int iUpgradeIndex)
         {
             InternalUpgradeInfo upgrade = upgradesClass.GetUpgradeByIndex(iUpgradeIndex);
 
@@ -469,7 +490,7 @@ namespace WpCShpRpg
         /**
          * Player info accessing functions (getter/setter)
          */
-        void CheckItemMaxLevels(int client)
+        public void CheckItemMaxLevels(int client)
         {
             int iSize = upgradesClass.GetUpgradeCount();
             InternalUpgradeInfo upgrade;
@@ -490,7 +511,7 @@ namespace WpCShpRpg
             }
         }
 
-        uint GetClientCredits(int client)
+        public uint GetClientCredits(int client)
         {
             return g_iPlayerInfo[client].credits;
         }
@@ -514,12 +535,12 @@ namespace WpCShpRpg
             return true;
         }
 
-        uint GetClientLevel(int client)
+        public uint GetClientLevel(int client)
         {
             return g_iPlayerInfo[client].level;
         }
 
-        bool SetClientLevel(int client, uint iLevel)
+        public bool SetClientLevel(int client, uint iLevel)
         {
             if (iLevel < 1)
                 iLevel = 1;
@@ -538,12 +559,12 @@ namespace WpCShpRpg
             return true;
         }
 
-        uint GetClientExperience(int client)
+        public uint GetClientExperience(int client)
         {
             return g_iPlayerInfo[client].experience;
         }
 
-        bool SetClientExperience(int client, uint iExperience)
+        public bool SetClientExperience(int client, uint iExperience)
         {
             if (iExperience < 0)
                 iExperience = 0;
@@ -587,6 +608,12 @@ namespace WpCShpRpg
             return playerupgrade.selectedlevel;
         }
 
+        public uint GetClientPurchasedUpgradeLevel(int client, int iUpgradeIndex)
+        {
+            PlayerUpgradeInfo playerupgrade = GetPlayerUpgradeInfoByIndex(client, iUpgradeIndex);
+            return playerupgrade.purchasedlevel;
+        }
+
         bool ShowMenuOnLevelUp(int client)
         {
             return g_iPlayerInfo[client].showMenuOnLevelup;
@@ -605,6 +632,36 @@ namespace WpCShpRpg
         void SetFadeScreenOnLevelUp(int client, bool fade)
         {
             g_iPlayerInfo[client].fadeOnLevelup = fade;
+        }
+
+
+        public void InitPlayerSessionStartStats(int client)
+        {
+            g_iPlayerSessionStartStats[client] = new SessionStats
+            {
+                JoinTime = Server.CurrentTime, // предполагается, что это значение времени в вашей системе
+                JoinLevel = GetClientLevel(client), // аналогично вызову функции в вашей системе
+                JoinExperience = GetClientExperience(client),
+                JoinCredits = GetClientCredits(client),
+                JoinRank = -1,
+                WantsAutoUpdate = false,
+                WantsMenuOpen = false,
+                OkToClose = false,
+                LastExperience = new List<int>(config.g_hCVLastExperienceCount) // размер списка инициализируется в соответствии с требуемым количеством элементов
+            };
+        }
+
+        public void ResetPlayerSessionStats(int client)
+        {
+            g_iPlayerSessionStartStats[client].JoinTime = 0.0f;
+            g_iPlayerSessionStartStats[client].JoinLevel = 0;
+            g_iPlayerSessionStartStats[client].JoinExperience = 0;
+            g_iPlayerSessionStartStats[client].JoinCredits = 0;
+            g_iPlayerSessionStartStats[client].JoinRank = -1;
+            g_iPlayerSessionStartStats[client].WantsAutoUpdate = false;
+            g_iPlayerSessionStartStats[client].WantsMenuOpen = false;
+            g_iPlayerSessionStartStats[client].OkToClose = false;
+            g_iPlayerSessionStartStats[client].LastExperience.Clear();
         }
     }
 }

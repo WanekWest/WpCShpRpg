@@ -12,11 +12,11 @@ namespace WpCShpRpg
         public override string ModuleName => "WpCShpRPG";
         public override string ModuleVersion => "0.0.1";
 
-        private static Database database = null;
-        private static Config config = null;
-        private static PlayerData playerData = null;
-        private static Upgrades upgrades = null;
-        private static Menu menu = null;
+        private static Database database;
+        private static Config config;
+        private static PlayerData playerData;
+        private static Upgrades upgrades;
+        private static Menu menu;
 
         public override void Load(bool hotReload)
         {
@@ -76,18 +76,13 @@ namespace WpCShpRpg
         [ConsoleCommand("rpgmenu", "Opens the rpg main menu")]
         public void OnCommandRpgMenu(CCSPlayerController? player, CommandInfo command)
         {
-            ShowRpgMenu(player);
+            menu.CreateRpgMenu();
         }
 
         [ConsoleCommand("rpg", "Opens the rpg main menu")]
         public void OnCommandRpg(CCSPlayerController? player, CommandInfo command)
         {
-            ShowRpgMenu(player);
-        }
-
-        private void ShowRpgMenu(CCSPlayerController? player)
-        {
-            ChatMenus.OpenMenu(player, menu.RpgMenu);
+            menu.CreateRpgMenu();
         }
 
         [ConsoleCommand("rpgrank", "Shows your rank or the rank of the target person. rpgrank [name|steamid|#userid]")]

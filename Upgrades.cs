@@ -252,7 +252,6 @@ namespace WpCShpRpg
             if (upgrade.teamlock <= 1)
                 return true;
 
-
             int iTeam;
             CCSPlayerController? player = Utilities.GetPlayerFromIndex(client);
             if (player != null && player.IsValid && !player.IsBot)

@@ -15,10 +15,10 @@ namespace WpCShpRpg
 
         string ConnectionString;
 
-        private static Config config = null;
-        private static PlayerData playerData = null;
-        private static Upgrades upgrades = null;
-        private static Menu menu = null;
+        private static Config config;
+        private static PlayerData playerData;
+        private static Upgrades upgrades;
+        private static Menu menu;
 
         public Database(string ModulePath)
         {
@@ -199,6 +199,32 @@ namespace WpCShpRpg
                 command.ExecuteNonQuery();
                 connection.Close();
             }
+        }
+
+        public uint GetPlayerRank(CCSPlayerController? player)
+        {
+            uint CurrentPlayerRank = 0;
+            using (MySqlConnection connection = new(ConnectionString))
+            {
+                connection.Open();
+                MySqlCommand command = new MySqlCommand($"SELECT COUNT(*) FROM players WHERE level > {playerData.GetClientLevel((int)player.UserId)} OR (level = {playerData.GetClientLevel((int)player.UserId)} AND experience > {playerData.GetClientExperience((int)player.UserId)})", connection);
+                CurrentPlayerRank = (uint)command.ExecuteScalar();
+                connection.Close();
+            }
+            return CurrentPlayerRank;
+        }
+
+        public uint GetAmountOfRanks()
+        {
+            uint AmountOfRanks = 0;
+            using (MySqlConnection connection = new(ConnectionString))
+            {
+                connection.Open();
+                MySqlCommand command = new MySqlCommand($"SELECT COUNT(*) FROM players", connection);
+                AmountOfRanks = (uint)command.ExecuteScalar();
+                connection.Close();
+            }
+            return AmountOfRanks;
         }
     }
 }
