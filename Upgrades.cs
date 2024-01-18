@@ -10,7 +10,7 @@ namespace WpCShpRpg
     public class Upgrades
     {
         private static Database database;
-        private static Config config;
+        private static ConfiguraionFiles config;
         private static PlayerData playerData;
         private static Menu menu;
 
@@ -33,7 +33,7 @@ namespace WpCShpRpg
             database = db;
         }
 
-        public void SetConfig(Config cfg)
+        public void SetConfig(ConfiguraionFiles cfg)
         {
             config = cfg;
         }

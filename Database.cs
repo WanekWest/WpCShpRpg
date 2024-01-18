@@ -14,28 +14,27 @@ namespace WpCShpRpg
         string TBL_SETTINGS = "settings";
         string sExtraOptions = " ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
 
-        string ConnectionString;
+        private static ConfiguraionFiles? config;
+        private static PlayerData? playerData;
+        private static Upgrades? upgrades;
+        private static Menu? menu;
 
-        private static Config config;
-        private static PlayerData playerData;
-        private static Upgrades upgrades;
-        private static Menu menu;
+        private string ConnectionString = string.Empty;
 
-        public Database(string ModulePath, Config cfg)
+        public Database(ConfiguraionFiles cfg, string ConnectionString)
         {
-            SetConfig(cfg);
-            ConnectionString = GetConnectionString(ModulePath);
+            config = cfg;
+
+            this.ConnectionString = ConnectionString;
+            if (ConnectionString == string.Empty)
+            {
+                Console.WriteLine("Ошибка в файле с базой данных!");
+            }
         }
 
         public void SetUpgrades(Upgrades upgrClass)
         {
-
             upgrades = upgrClass;
-        }
-
-        public void SetConfig(Config cfg)
-        {
-            config = cfg;
         }
 
         public void SetMenu(Menu mn)
@@ -48,23 +47,10 @@ namespace WpCShpRpg
             playerData = pData;
         }
 
-        private string GetConnectionString(string ModulePath)
-        {
-            var Configuration = config.LoadDatabaseConfig(ModulePath);
-
-            if (Configuration.CShpRpgDatabase == null)
-            {
-                throw new Exception("Объект 'Database' не найден в конфигурационном файле.");
-            }
-
-            var dbConfig = Configuration.CShpRpgDatabase;
-
-            return $"Server={dbConfig.Host};Database={dbConfig.Name};User ID={dbConfig.User};Password={dbConfig.Password};";
-        }
-
         // Создание таблиц.
         public void InitDatabase()
         {
+            Server.PrintToConsole($"ConnectionString is {ConnectionString}");
             using (MySqlConnection connection = new(ConnectionString))
             {
                 connection.Open();

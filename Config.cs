@@ -1,10 +1,9 @@
 ﻿using CounterStrikeSharp.API;
 using System.Text.Json;
-using System.Xml.Linq;
 
 namespace WpCShpRpg
 {
-    public class Config
+    public class ConfiguraionFiles
     {
         #region Основные параметры мода
         // Глобальные переменные мода.
@@ -74,10 +73,6 @@ namespace WpCShpRpg
         public uint[] g_hCVFadeOnLevelColor = new uint[4];
         #endregion
 
-        #region Переменные для базы данных
-        public CShpRpgDatabaseConfig CShpRpgDatabase { get; set; } = null;
-        #endregion
-
         #region Парсинг Основного конфига
         public static Dictionary<string, string> ParseConfigFile(string filePath)
         {
@@ -119,7 +114,7 @@ namespace WpCShpRpg
 
             try
             {
-                Dictionary<string, string> ConfigData = Config.ParseConfigFile(configPath);
+                Dictionary<string, string> ConfigData = ConfiguraionFiles.ParseConfigFile(configPath);
 
                 if (ConfigData.TryGetValue("csshprpg_enable", out string? g_csshprpg_enable))
                 {
@@ -394,57 +389,63 @@ namespace WpCShpRpg
         #endregion
 
         #region Работа с базами
-        private Config CreateDatabaseConfig(string configPath)
+        public string LoadDatabaseConfig(string moduleDirectory)
         {
-            var config = new Config
+            string? ParentDirectory = Directory.GetParent(moduleDirectory)?.Parent?.FullName;
+            if (string.IsNullOrEmpty(ParentDirectory))
             {
-                CShpRpgDatabase = new CShpRpgDatabaseConfig
-                {
-                    Host = "",
-                    Name = "",
-                    User = "",
-                    Password = "",
-                }
-            };
-
-            File.WriteAllText(configPath,
-                JsonSerializer.Serialize(config, new JsonSerializerOptions { WriteIndented = true }));
-
-            return config;
-        }
-
-        public Config LoadDatabaseConfig(string ModulePath)
-        {
-            var moduleDirectoryParent = Directory.GetParent(ModulePath);
-            if (moduleDirectoryParent == null)
-            {
-                throw new InvalidOperationException("Не удалось найти родительский каталог модуля.");
+                Console.WriteLine("Ошибка: Невозможно найти путь к модулю!");
+                return string.Empty;
             }
 
-            var parentDirectory = moduleDirectoryParent.Parent;
-            if (parentDirectory == null)
-            {
-                throw new InvalidOperationException("Не удалось найти родительский каталог родительского каталога модуля.");
-            }
-
-            var configPath = Path.Combine(parentDirectory.FullName, "configs/wpcshprpg_mysql.json");
+            string configPath = Path.Combine(ParentDirectory, "configs/wpcshprpg_mysql.json");
             if (!File.Exists(configPath))
             {
-                Server.PrintToConsole("Не удалось найти базу данных!");
-                return CreateDatabaseConfig(ModulePath);
+                Server.PrintToConsole("Ошибка: Не удалось найти файл по пути configs/wpcshprpg_mysql.json!");
+                return string.Empty;
             }
 
-            var config = JsonSerializer.Deserialize<Config>(File.ReadAllText(configPath))!;
+            try
+            {
+                string json = File.ReadAllText(configPath);
+                Server.PrintToConsole($"json is {json}");
+                // var dbConfig = JsonSerializer.Deserialize<DatabaseConfig>(json)!.CssRpgDb;
 
-            return config;
+                var config = JsonSerializer.Deserialize<DatabaseConfig>(File.ReadAllText(configPath))!;
+                if (config.CssRpgDb == null)
+                {
+                    throw new Exception("Объект 'Database' не найден в конфигурационном файле.");
+                }
+
+                var dbConfig = config.CssRpgDb;
+                Server.PrintToConsole($"dbConfig is {dbConfig}");
+
+                return $"Server={dbConfig.Host};Database={dbConfig.Database};User ID={dbConfig.User};Password={dbConfig.Password};";
+
+                // string connectionString = $"Server={dbConfig.Host};Database={dbConfig.Database};Uid={dbConfig.User};Pwd={dbConfig.Password};Port={dbConfig.Port};";
+                // Server.PrintToConsole($"connectionString is {connectionString}");
+                // 
+                // return connectionString;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Ошибка при чтении файла конфигурации: {ex.Message}");
+                return string.Empty;
+            }
         }
 
-        public class CShpRpgDatabaseConfig
+        public class DBConfig
         {
             public required string Host { get; init; }
-            public required string Name { get; init; }
+            public required string Database { get; init; }
             public required string User { get; init; }
             public required string Password { get; init; }
+            public required int Port { get; init; }
+        }
+
+        public class DatabaseConfig
+        {
+            public required DBConfig CssRpgDb { get; init; }
         }
         #endregion
 

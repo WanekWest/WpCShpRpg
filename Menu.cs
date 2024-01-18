@@ -19,7 +19,7 @@ namespace WpCShpRpg
         private ChatMenu ConfirmSellMenu = new ChatMenu($" {ChatColors.DarkBlue}--[{ChatColors.Green}WP Выберите один из вариантов{ChatColors.DarkBlue}]--");
 
         private static Database database;
-        private static Config config;
+        private static ConfiguraionFiles config;
         private static PlayerData playerData;
         private static Upgrades upgrades;
 
@@ -48,7 +48,7 @@ namespace WpCShpRpg
             upgrades = upgrClass;
         }
 
-        public void SetConfig(Config cfg)
+        public void SetConfig(ConfiguraionFiles cfg)
         {
             config = cfg;
         }

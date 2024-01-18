@@ -8,7 +8,7 @@ namespace WpCShpRpg
 {
     public class PlayerData
     {
-        private static Config config;
+        private static ConfiguraionFiles config;
         private static Upgrades upgradesClass;
         private static Database database;
         private static Menu menu;
@@ -61,7 +61,7 @@ namespace WpCShpRpg
             upgradesClass = upgrClass;
         }
 
-        public void SetConfig(Config cfg)
+        public void SetConfig(ConfiguraionFiles cfg)
         {
             config = cfg;
         }

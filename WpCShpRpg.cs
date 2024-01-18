@@ -14,14 +14,14 @@ namespace WpCShpRpg
         public override string ModuleDescription => "Инновационный РПГ мод для CS:2!";
 
         private static Database database;
-        private static Config config;
+        private static ConfiguraionFiles config;
         private static PlayerData playerData;
         private static Upgrades upgrades;
         private static Menu menu;
 
         public override void Load(bool hotReload)
         {
-            config = new Config();
+            config = new ConfiguraionFiles();
 
             if (config.LoadModCondiguration(ModuleDirectory) == false)
             {
@@ -31,20 +31,28 @@ namespace WpCShpRpg
 
             LoadExecutionFile();
 
-            PlayerData playerData = new PlayerData(ModuleDirectory);
-            Upgrades upgrades = new Upgrades(ModuleDirectory);
+            // TODO: Меню и регистрация.
             Menu menu = new Menu();
             menu.CreateRpgMenu();
 
-            // TODO: Меню и регистрация.
-
             // TODO: Регистрация форвардов. 
 
-            Server.PrintToConsole("пипипипипи");
+
             // TODO: Инициализация настроек, улучшений, базы.
-            database = new Database(ModuleDirectory, config);
-            database.InitDatabase();
-            database.DatabaseMaid(config.g_hCVSaveData, config.g_hCVPlayerExpire);
+            try
+            {
+                database = new Database(config, config.LoadDatabaseConfig(ModuleDirectory));
+                database.InitDatabase();
+                database.DatabaseMaid(config.g_hCVSaveData, config.g_hCVPlayerExpire);
+            }
+            catch (Exception ex)
+            {
+                Server.PrintToConsole($"Ошибка при инициализации базы данных: {ex.Message}");
+                return;
+            }
+
+            PlayerData playerData = new PlayerData(ModuleDirectory);
+            Upgrades upgrades = new Upgrades(ModuleDirectory);
 
             playerData.SetConfig(config);
             upgrades.SetConfig(config);
@@ -75,7 +83,6 @@ namespace WpCShpRpg
             RegisterEventHandler<EventPlayerDisconnect>(Event_OnPlayerDisconnect);
             Server.PrintToConsole("стоп");
         }
-
 
         [ConsoleCommand("rpgmenu", "Opens the rpg main menu")]
         public void OnCommandRpgMenu(CCSPlayerController? player, CommandInfo command)
@@ -229,12 +236,10 @@ namespace WpCShpRpg
                 return;
             }
 
-            Dictionary<string, string> ConfigData = Config.ParseConfigFile(configPath);
+            Dictionary<string, string> ConfigData = ConfiguraionFiles.ParseConfigFile(configPath);
             foreach (var kvp in ConfigData)
             {
-                // Server.PrintToConsole($"{kvp.Key} {kvp.Value}");
                 Server.ExecuteCommand($"{kvp.Key} {kvp.Value}");
-                Server.PrintToConsole($"Применено: {kvp.Key}: {kvp.Value}");
             }
 
             return;
@@ -269,8 +274,6 @@ namespace WpCShpRpg
 
         public HookResult Event_OnRoundEnd(EventRoundEnd @event, GameEventInfo info)
         {
-
-
             return HookResult.Continue;
         }
 
