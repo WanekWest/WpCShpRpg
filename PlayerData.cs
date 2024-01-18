@@ -13,6 +13,8 @@ namespace WpCShpRpg
         private static Database database;
         private static Menu menu;
 
+        private string ModuleDirectory;
+
         public delegate void BuyUpgradeHandler(int client, string shortName, uint currentLevel, ref bool cancel);
         public event BuyUpgradeHandler OnBuyUpgrade;
 
@@ -43,9 +45,9 @@ namespace WpCShpRpg
         public delegate void ClientExperiencePostHandler(int client, uint ClientExperiencePost, uint currentLevel);
         public event ClientExperiencePostHandler ClientExperiencePost;
 
-        public PlayerData()
+        public PlayerData(string ModuleDirectory)
         {
-
+            this.ModuleDirectory = ModuleDirectory;
         }
 
         public void SetDatabase(Database db)
@@ -134,10 +136,10 @@ namespace WpCShpRpg
             }
         }
 
-        public PlayerInfo[] g_iPlayerInfo = new PlayerInfo[Server.MaxPlayers + 1];
+        public static PlayerInfo[] g_iPlayerInfo = new PlayerInfo[Server.MaxPlayers + 1];
         public SessionStats[] g_iPlayerSessionStartStats = new SessionStats[Server.MaxPlayers + 1];
         public bool[] g_bFirstLoaded = new bool[Server.MaxPlayers + 1];
-        public string[,] g_sOriginalBotName = new string[Server.MaxPlayers + 1, Player.MaxNameLength];
+        public string[,] g_sOriginalBotName = new string[Server.MaxPlayers + 1, 255];
         public bool[] g_bBackToStatsMenu = new bool[Server.MaxPlayers + 1];
 
         public void RemovePlayer(int client, bool g_hCVShowMenuOnLevelDefault, bool g_hCVFadeOnLevelDefault, bool bKeepBotName = false)
@@ -155,7 +157,7 @@ namespace WpCShpRpg
                 g_sOriginalBotName[client, 0] = "\0";
         }
 
-        public bool IsPlayerDataLoaded(int client)
+        public static bool IsPlayerDataLoaded(int client)
         {
             return g_iPlayerInfo[client].dataLoadedFromDB;
         }
@@ -175,7 +177,7 @@ namespace WpCShpRpg
             return g_iPlayerInfo[client].lastSeen;
         }
 
-        public PlayerUpgradeInfo GetPlayerUpgradeInfoByIndex(int client, int index)
+        public static PlayerUpgradeInfo GetPlayerUpgradeInfoByIndex(int client, int index)
         {
             return (PlayerUpgradeInfo)g_iPlayerInfo[client].upgrades[index];
         }
@@ -187,9 +189,9 @@ namespace WpCShpRpg
 
         public void ResetStats(int client)
         {
-            Console.WriteLine("Stats have been reset for player: %N", client);
+            Server.PrintToChatAll($"Stats have been reset for player: {client}");
 
-            int iSize = upgradesClass.GetUpgradeCount();
+            int iSize = Upgrades.GetUpgradeCount();
             Upgrades.InternalUpgradeInfo upgrade;
             PlayerUpgradeInfo playerupgrade;
             bool bWasEnabled;
@@ -209,9 +211,9 @@ namespace WpCShpRpg
                 if (!bWasEnabled)
                     continue;
 
-                upgrade = upgradesClass.GetUpgradeByIndex(i);
+                upgrade = Upgrades.GetUpgradeByIndex(i);
 
-                if (upgradesClass.IsValidUpgrade(upgrade) == false)
+                if (Upgrades.IsValidUpgrade(upgrade) == false)
                     continue;
             }
 
@@ -238,7 +240,7 @@ namespace WpCShpRpg
             g_iPlayerInfo[client].lastSeen = Server.CurrentTime;
 
             g_iPlayerInfo[client].upgrades = new ArrayList();
-            int iNumUpgrades = upgradesClass.GetUpgradeCount();
+            int iNumUpgrades = Upgrades.GetUpgradeCount();
 
             for (int i = 0; i < iNumUpgrades; i++)
             {
@@ -301,13 +303,13 @@ namespace WpCShpRpg
             database.SendQuery(query);
         }
 
-        void InitPlayerNewUpgrade(int client)
+        public void InitPlayerNewUpgrade(int client)
         {
             // Let the player start this upgrade on its set start level by default.
             ArrayList clienUpgrades = GetClientUpgrades(client);
             int iIndex = clienUpgrades.Count;
             InternalUpgradeInfo upgrade;
-            upgrade = upgradesClass.GetUpgradeByIndex(iIndex);
+            upgrade = Upgrades.GetUpgradeByIndex(iIndex);
 
             PlayerUpgradeInfo playerupgrade;
             playerupgrade.purchasedlevel = 0;
@@ -317,9 +319,6 @@ namespace WpCShpRpg
             playerupgrade.sounds = true;
             clienUpgrades.Add(playerupgrade);
 
-            // Get the money for the start level?
-            // TODO: Make sure to document the OnBuyUpgrade forward being called on clients not ingame yet + test.
-            // (This is can be called OnClientConnected.)
             bool bFree = config.g_hCVUpgradeStartLevelsFree;
             for (int i = 0; i < upgrade.startLevel; i++)
             {
@@ -339,9 +338,9 @@ namespace WpCShpRpg
         public bool GiveClientUpgrade(int client, int iUpgradeIndex)
         {
             InternalUpgradeInfo upgrade;
-            upgrade = upgradesClass.GetUpgradeByIndex(iUpgradeIndex);
+            upgrade = Upgrades.GetUpgradeByIndex(iUpgradeIndex);
 
-            if (upgradesClass.IsValidUpgrade(upgrade) == false)
+            if (Upgrades.IsValidUpgrade(upgrade) == false)
                 return false;
 
             uint iCurrentLevel = upgradesClass.GetClientPurchasedUpgradeLevel(client, iUpgradeIndex);
@@ -371,7 +370,7 @@ namespace WpCShpRpg
 
         public bool BuyClientUpgrade(int client, int iUpgradeIndex)
         {
-            InternalUpgradeInfo upgrade = upgradesClass.GetUpgradeByIndex(iUpgradeIndex);
+            InternalUpgradeInfo upgrade = Upgrades.GetUpgradeByIndex(iUpgradeIndex);
 
             uint iCurrentLevel = upgradesClass.GetClientPurchasedUpgradeLevel(client, iUpgradeIndex);
 
@@ -395,9 +394,9 @@ namespace WpCShpRpg
 
         public bool TakeClientUpgrade(int client, int iUpgradeIndex)
         {
-            InternalUpgradeInfo upgrade = upgradesClass.GetUpgradeByIndex(iUpgradeIndex);
+            InternalUpgradeInfo upgrade = Upgrades.GetUpgradeByIndex(iUpgradeIndex);
 
-            if (upgradesClass.IsValidUpgrade(upgrade) == false)
+            if (Upgrades.IsValidUpgrade(upgrade) == false)
                 return false;
 
             uint iCurrentLevel = upgradesClass.GetClientPurchasedUpgradeLevel(client, iUpgradeIndex);
@@ -425,7 +424,7 @@ namespace WpCShpRpg
 
         public bool SellClientUpgrade(int client, int iUpgradeIndex)
         {
-            InternalUpgradeInfo upgrade = upgradesClass.GetUpgradeByIndex(iUpgradeIndex);
+            InternalUpgradeInfo upgrade = Upgrades.GetUpgradeByIndex(iUpgradeIndex);
 
             uint iCurrentLevel = upgradesClass.GetClientPurchasedUpgradeLevel(client, iUpgradeIndex);
 
@@ -446,7 +445,7 @@ namespace WpCShpRpg
             bool upgradeBought;
             int currentIndex;
 
-            int size = upgradesClass.GetUpgradeCount();
+            int size = Upgrades.GetUpgradeCount();
 
             ArrayList randomBuying = new ArrayList();
             for (int i = 0; i < size; i++)
@@ -462,10 +461,10 @@ namespace WpCShpRpg
                 for (int i = 0; i < size; i++)
                 {
                     currentIndex = (int)randomBuying[i];
-                    var upgrade = upgradesClass.GetUpgradeByIndex(currentIndex);
+                    var upgrade = Upgrades.GetUpgradeByIndex(currentIndex);
 
                     // Valid upgrade the bot can use?
-                    if (!upgradesClass.IsValidUpgrade(upgrade) || !upgrade.enabled)
+                    if (!Upgrades.IsValidUpgrade(upgrade) || !upgrade.enabled)
                         continue;
 
                     // Don't buy it, if bots aren't allowed to use it at all.
@@ -492,13 +491,13 @@ namespace WpCShpRpg
          */
         public void CheckItemMaxLevels(int client)
         {
-            int iSize = upgradesClass.GetUpgradeCount();
+            int iSize = Upgrades.GetUpgradeCount();
             InternalUpgradeInfo upgrade;
             uint iMaxLevel;
             uint iCurrentLevel;
             for (int i = 0; i < iSize; i++)
             {
-                upgrade = upgradesClass.GetUpgradeByIndex(i);
+                upgrade = Upgrades.GetUpgradeByIndex(i);
                 iMaxLevel = upgrade.maxLevel;
                 iCurrentLevel = upgradesClass.GetClientPurchasedUpgradeLevel(client, i);
                 while (iCurrentLevel > iMaxLevel)
@@ -662,6 +661,26 @@ namespace WpCShpRpg
             g_iPlayerSessionStartStats[client].WantsMenuOpen = false;
             g_iPlayerSessionStartStats[client].OkToClose = false;
             g_iPlayerSessionStartStats[client].LastExperience.Clear();
+        }
+
+        public static uint GetClientUpgradeLevel(int client, string shortname)
+        {
+            // Don't try to lookup anything, if we haven't loaded the client completely yet.
+            if (!IsPlayerDataLoaded(client))
+                return 0;
+
+            InternalUpgradeInfo upgrade = GetUpgradeByIndex(0);
+            if (!upgradesClass.GetUpgradeByShortname(shortname, ref upgrade) || !IsValidUpgrade(upgrade))
+            {
+                Server.PrintToConsole($"Нету загруженного скилла с навзанием: \"{shortname}\"");
+            }
+
+            // Return 0, if the client has it disabled.
+            if (upgrade.enabled == false)
+                return 0;
+
+            PlayerUpgradeInfo playerupgrade = GetPlayerUpgradeInfoByIndex(client, upgrade.index);
+            return playerupgrade.selectedlevel;
         }
     }
 }

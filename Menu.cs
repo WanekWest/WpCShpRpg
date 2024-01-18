@@ -8,7 +8,7 @@ namespace WpCShpRpg
 {
     public class Menu
     {
-        private ChatMenu RpgMenu = new ChatMenu($" {ChatColors.DarkBlue}--[{ChatColors.Green}WP RPG{ChatColors.DarkBlue}]--");
+        public ChatMenu RpgMenu = new ChatMenu($" {ChatColors.DarkBlue}--[{ChatColors.Green}WP RPG{ChatColors.DarkBlue}]--");
         private ChatMenu BuyUpgradesMenu = new ChatMenu($" {ChatColors.DarkBlue}--[{ChatColors.Green}WP Покупка навыков{ChatColors.DarkBlue}]--");
         private ChatMenu SellUpgradesMenu = new ChatMenu($" {ChatColors.DarkBlue}--[{ChatColors.Green}WP Продажа навыков{ChatColors.DarkBlue}]--");
         private ChatMenu SettingsMenu = new ChatMenu($" {ChatColors.DarkBlue}--[{ChatColors.Green}WP Настройки{ChatColors.DarkBlue}]--");
@@ -153,10 +153,10 @@ namespace WpCShpRpg
             }
 
             ChatMenu UpgradesMenu = new ChatMenu($" {ChatColors.DarkBlue}--[{ChatColors.Green}WP Навыки{ChatColors.DarkBlue}]--");
-            for (int i = 0; i < upgrades.GetUpgradeCount(); i++)
+            for (int i = 0; i < Upgrades.GetUpgradeCount(); i++)
             {
-                InternalUpgradeInfo CurrentUpgrade = upgrades.GetUpgradeByIndex(i);
-                if (upgrades.IsValidUpgrade(CurrentUpgrade) == false)
+                InternalUpgradeInfo CurrentUpgrade = Upgrades.GetUpgradeByIndex(i);
+                if (Upgrades.IsValidUpgrade(CurrentUpgrade) == false)
                     return;
 
                 UpgradesMenu.AddMenuOption($"{CurrentUpgrade.shortName} {playerData.GetClientSelectedUpgradeLevel(client, i)}/{CurrentUpgrade.maxLevel}", (player, option) =>
@@ -303,7 +303,7 @@ namespace WpCShpRpg
             bool bHasVisuals = CurrentUpgrade.visualsConvar != null && CurrentUpgrade.enableVisuals;
             bool bHasSounds = CurrentUpgrade.soundsConvar != null && CurrentUpgrade.enableSounds;
 
-            PlayerUpgradeInfo playerupgrade = playerData.GetPlayerUpgradeInfoByIndex(Client, UpgradeIndex);
+            PlayerUpgradeInfo playerupgrade = PlayerData.GetPlayerUpgradeInfoByIndex(Client, UpgradeIndex);
 
             if (bHasVisuals || bHasSounds)
             {

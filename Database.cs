@@ -1,12 +1,13 @@
 ﻿using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
 using MySqlConnector;
+using static WpCShpRpg.Upgrades;
 
 namespace WpCShpRpg
 {
     public class Database
     {
-        string SMRPG_DB = "cshprpg";
+        string wpcshprpg_DB = "cshprpg";
         string TBL_PLAYERS = "players";
         string TBL_PLAYERUPGRADES = "player_upgrades";
         string TBL_UPGRADES = "upgrades";
@@ -20,8 +21,9 @@ namespace WpCShpRpg
         private static Upgrades upgrades;
         private static Menu menu;
 
-        public Database(string ModulePath)
+        public Database(string ModulePath, Config cfg)
         {
+            SetConfig(cfg);
             ConnectionString = GetConnectionString(ModulePath);
         }
 
@@ -118,13 +120,11 @@ namespace WpCShpRpg
             }
         }
 
-        public bool ResetAllPlayers(bool g_hCVSaveData, string sReason, bool bHardReset)
+        public bool ResetAllPlayers(string sReason, bool bHardReset)
         {
             // Don't touch the database, if we don't want to save any data.
-            if (!g_hCVSaveData)
+            if (!config.g_hCVSaveData)
                 return false;
-
-            PlayerData playerData = new PlayerData();
 
             string sQuery;
             // Delete all player information?
@@ -150,7 +150,7 @@ namespace WpCShpRpg
                         playerData.InitPlayer(i, false);
 
                         if (Player.IsValid)
-                            playerData.InsertPlayer(i, config.g_hCVEnable, g_hCVSaveData, config.g_hCVBotSaveStats);
+                            playerData.InsertPlayer(i, config.g_hCVEnable, config.g_hCVSaveData, config.g_hCVBotSaveStats);
                     }
                 }
             }
@@ -211,6 +211,7 @@ namespace WpCShpRpg
                 CurrentPlayerRank = (uint)command.ExecuteScalar();
                 connection.Close();
             }
+
             return CurrentPlayerRank;
         }
 
@@ -225,6 +226,20 @@ namespace WpCShpRpg
                 connection.Close();
             }
             return AmountOfRanks;
+        }
+
+        public void CheckUpgradeDatabaseEntry(InternalUpgradeInfo upgrade)
+        {
+            upgrade.databaseLoading = true;
+            Upgrades.SaveUpgradeConfig(upgrade);
+
+            using (MySqlConnection connection = new(ConnectionString))
+            {
+                connection.Open();
+                MySqlCommand command = new MySqlCommand($"SELECT upgrade_id FROM upgrades WHERE shortname = \"{upgrade.shortName}\";", connection);
+                command.ExecuteNonQuery();
+                connection.Close();
+            }
         }
     }
 }

@@ -1,4 +1,5 @@
-﻿using CounterStrikeSharp.API.Core;
+﻿using CounterStrikeSharp.API;
+using CounterStrikeSharp.API.Core;
 using MySqlConnector;
 
 namespace WpCShpRpg
@@ -84,15 +85,15 @@ namespace WpCShpRpg
 
             if (admins.Count > 0)
             {
-                Console.WriteLine($" List of administrators received:");
+                Server.PrintToConsole($" List of administrators received:");
                 foreach (var admin in admins)
                 {
-                    Console.WriteLine($"SteamID={admin.SteamID}, Name={admin.Name}, Flags={admin.Flags}, Immunity={admin.Immunity}, EndTime={admin.EndTime}, Comment={admin.Comment}");
+                    Server.PrintToConsole($"SteamID={admin.SteamID}, Name={admin.Name}, Flags={admin.Flags}, Immunity={admin.Immunity}, EndTime={admin.EndTime}, Comment={admin.Comment}");
                 }
             }
             else
             {
-                Console.WriteLine($" No administrators found in the database.");
+                Server.PrintToConsole($" No administrators found in the database.");
             }
 
             return admins;
