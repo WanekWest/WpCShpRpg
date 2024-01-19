@@ -76,12 +76,64 @@ namespace WpCShpRpg
 
             // TODO: Инициализация файлов перевода.
 
-            Server.PrintToConsole("реги");
             RegisterEventHandler<EventPlayerSpawn>(Event_OnPlayerSpawn);
             RegisterEventHandler<EventPlayerDeath>(Event_OnPlayerDeath);
             RegisterEventHandler<EventRoundEnd>(Event_OnRoundEnd);
             RegisterEventHandler<EventPlayerDisconnect>(Event_OnPlayerDisconnect);
-            Server.PrintToConsole("стоп");
+        }
+
+        [GameEventHandler]
+        public HookResult EventPlayerConnect(EventPlayerConnect @event, GameEventInfo info)
+        {
+            if (@event.Userid != null && @event.Userid.IsValid && !@event.Bot && @event.Userid.UserId != null)
+            {
+                if (config.g_hCVEnable)
+                {
+                    PlayerData.InitPlayer((int)@event.Userid.Index);
+                }
+            }
+            return HookResult.Continue;
+        }
+
+        [GameEventHandler]
+        public HookResult OnClientAuthorized(EventPlayerConnectFull @event, GameEventInfo info)
+        {
+            if (@event.Userid != null && !@event.Userid.IsValid)
+                return HookResult.Continue;
+
+            if (!config.g_hCVEnable)
+                return HookResult.Continue;
+
+            CCSPlayerController? player = Utilities.GetPlayerFromIndex((int)@event.Userid.Index);
+            if (player == null || player.UserId <= 0 || !player.IsValid || player.UserId == null)
+                return HookResult.Continue;
+
+            string query;
+            if (player.IsBot)
+            {
+                if (!config.g_hCVBotSaveStats)
+                    return HookResult.Continue;
+
+                if (player.IsHLTV)
+                    return HookResult.Continue;
+
+                // Экранирование имени для безопасности запроса
+                string escapedName = player.PlayerName.Replace("'", "''");
+                Server.PrintToConsole($"escapedName is {escapedName}");
+                query = $"SELECT player_id, level, experience, credits, lastreset, lastseen, showmenu, fadescreen FROM players WHERE steamid IS NULL AND name = {escapedName} ORDER BY level DESC LIMIT 1";
+            }
+            else
+            {
+                ulong accountId = player.SteamID;
+                if (accountId == 0)
+                    return HookResult.Continue;
+
+                Server.PrintToConsole($"accountId is {accountId}");
+                query = $"SELECT player_id, level, experience, credits, lastreset, lastseen, showmenu, fadescreen FROM players WHERE steamid = {accountId} ORDER BY level DESC LIMIT 1";
+            }
+
+            database.GetPlayerInfo(query, (int)@event.Userid.Index);
+            return HookResult.Continue;
         }
 
         [ConsoleCommand("rpgmenu", "Opens the rpg main menu")]
@@ -89,8 +141,8 @@ namespace WpCShpRpg
         {
             if (player != null && player.IsValid && !player.IsBot)
             {
-                if(menu.IsHelpMenuCreated)
-                ChatMenus.OpenMenu(player, menu.RpgMenu);
+                if (menu.IsHelpMenuCreated)
+                    ChatMenus.OpenMenu(player, menu.RpgMenu);
             }
         }
 

@@ -1,6 +1,8 @@
 ﻿using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
+using CounterStrikeSharp.API.Modules.Entities;
 using MySqlConnector;
+using static WpCShpRpg.PlayerData;
 using static WpCShpRpg.Upgrades;
 
 namespace WpCShpRpg
@@ -50,12 +52,11 @@ namespace WpCShpRpg
         // Создание таблиц.
         public void InitDatabase()
         {
-            Server.PrintToConsole($"ConnectionString is {ConnectionString}");
             using (MySqlConnection connection = new(ConnectionString))
             {
                 connection.Open();
 
-                string sQuery = $"CREATE TABLE IF NOT EXISTS {TBL_PLAYERS} (player_id INTEGER PRIMARY KEY AUTO_INCREMENT, name VARCHAR(64) NOT NULL DEFAULT ' ', steamid INTEGER DEFAULT NULL UNIQUE, level INTEGER DEFAULT 1, experience INTEGER DEFAULT 0, credits INTEGER DEFAULT 0, showmenu INTEGER DEFAULT 1, fadescreen INTEGER DEFAULT 1, lastseen INTEGER DEFAULT 0, lastreset INTEGER DEFAULT 0) {sExtraOptions}";
+                string sQuery = $"CREATE TABLE IF NOT EXISTS players (player_id INTEGER PRIMARY KEY AUTO_INCREMENT, name VARCHAR(64) NOT NULL DEFAULT ' ', steamid INTEGER DEFAULT NULL UNIQUE, level INTEGER DEFAULT 1, experience INTEGER DEFAULT 0, credits INTEGER DEFAULT 0, showmenu INTEGER DEFAULT 1, fadescreen INTEGER DEFAULT 1, lastseen INTEGER DEFAULT 0, lastreset INTEGER DEFAULT 0) {sExtraOptions}";
                 MySqlCommand command = new MySqlCommand(sQuery, connection);
                 command.ExecuteNonQuery();
 
@@ -65,7 +66,7 @@ namespace WpCShpRpg
                 command.ExecuteNonQuery();
 
                 // Create the player -> upgrades table.
-                sQuery = $"CREATE TABLE IF NOT EXISTS {TBL_PLAYERUPGRADES} (player_id INTEGER, upgrade_id INTEGER, purchasedlevel INTEGER NOT NULL, selectedlevel INTEGER NOT NULL, enabled INTEGER DEFAULT 1, visuals INTEGER DEFAULT 1, sounds INTEGER DEFAULT 1, PRIMARY KEY(player_id, upgrade_id), FOREIGN KEY (player_id) REFERENCES {TBL_PLAYERS}(player_id) ON DELETE CASCADE, FOREIGN KEY (upgrade_id) REFERENCES {TBL_UPGRADES}(upgrade_id) ON DELETE CASCADE){sExtraOptions}";
+                sQuery = $"CREATE TABLE IF NOT EXISTS {TBL_PLAYERUPGRADES} (player_id INTEGER, upgrade_id INTEGER, purchasedlevel INTEGER NOT NULL, selectedlevel INTEGER NOT NULL, enabled INTEGER DEFAULT 1, visuals INTEGER DEFAULT 1, sounds INTEGER DEFAULT 1, PRIMARY KEY(player_id, upgrade_id), FOREIGN KEY (player_id) REFERENCES players (player_id) ON DELETE CASCADE, FOREIGN KEY (upgrade_id) REFERENCES {TBL_UPGRADES}(upgrade_id) ON DELETE CASCADE){sExtraOptions}";
                 command = new MySqlCommand(sQuery, connection);
                 command.ExecuteNonQuery();
 
@@ -85,23 +86,63 @@ namespace WpCShpRpg
             if (!g_hCVSaveData)
                 return;
 
+            DateTime currentTime = DateTime.Now;
+            // Время "3 дня назад" в формате Unix Timestamp
+            DateTime threeDaysAgo = currentTime.AddSeconds(-259200);
+            long threeDaysAgoUnix = ((DateTimeOffset)threeDaysAgo).ToUnixTimeSeconds();
+
             string sQuery;
-            // Have players expire after x days and delete them from the database?
             if (g_hCVPlayerExpire > 0)
             {
-                sQuery = $"SELECT player_id FROM {TBL_PLAYERS} WHERE (level <= 1 AND lastseen <= {Server.CurrentTime - 259200}) OR lastseen <= {Server.CurrentTime - (86400 * g_hCVPlayerExpire)}";
+                DateTime expireTime = currentTime.AddSeconds(-86400 * g_hCVPlayerExpire);
+                long expireTimeUnix = ((DateTimeOffset)expireTime).ToUnixTimeSeconds();
+                sQuery = $"SELECT player_id FROM players WHERE (level <= 1 AND lastseen <= {threeDaysAgoUnix}) OR lastseen <= {expireTimeUnix}";
             }
             else
             {
-                // Delete players who are Level 1 and haven't played for 3 days
-                sQuery = $"SELECT player_id FROM {TBL_PLAYERS} WHERE (level <= 1 AND lastseen <= {Server.CurrentTime - 259200})";
+                // Удаляем игроков, которые находятся на уровне 1 и не играли в течение 3 дней
+                sQuery = $"SELECT player_id FROM players WHERE (level <= 1 AND lastseen <= {threeDaysAgoUnix})";
             }
 
-            using (MySqlConnection connection = new(ConnectionString))
+            using (MySqlConnection connection = new MySqlConnection(ConnectionString))
             {
-                connection.Open();
-                MySqlCommand command = new MySqlCommand(sQuery, connection);
-                command.ExecuteNonQuery();
+                MySqlCommand selectCommand = new MySqlCommand(sQuery, connection);
+                List<int> playerIds = new List<int>();
+
+                try
+                {
+                    connection.Open();
+                    using (MySqlDataReader reader = selectCommand.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            playerIds.Add(reader.GetInt32(0));
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // Обработка возможных исключений при выполнении SELECT
+                    Server.PrintToConsole($"Ошибка при выборе игроков для удаления: {ex.Message}");
+                }
+
+                // После получения списка идентификаторов игроков, удаляем их
+                foreach (var playerId in playerIds)
+                {
+                    string deleteQuery = $"DELETE FROM players WHERE player_id = {playerId}";
+                    MySqlCommand deleteCommand = new MySqlCommand(deleteQuery, connection);
+
+                    try
+                    {
+                        deleteCommand.ExecuteNonQuery();
+                    }
+                    catch (Exception ex)
+                    {
+                        // Обработка возможных исключений при выполнении DELETE
+                        Server.PrintToConsole($"Ошибка при удалении игрока с ID {playerId}: {ex.Message}");
+                    }
+                }
+
                 connection.Close();
             }
         }
@@ -116,7 +157,7 @@ namespace WpCShpRpg
             // Delete all player information?
             if (bHardReset)
             {
-                sQuery = $"DELETE FROM {TBL_PLAYERS}";
+                sQuery = $"DELETE FROM players";
                 using (MySqlConnection connection = new(ConnectionString))
                 {
                     connection.Open();
@@ -133,7 +174,7 @@ namespace WpCShpRpg
                     {
                         // Keep the original bot names intact, to avoid saving renamed bots.
                         playerData.RemovePlayer(i, config.g_hCVShowMenuOnLevelDefault, config.g_hCVFadeOnLevelDefault, true);
-                        playerData.InitPlayer(i, false);
+                        PlayerData.InitPlayer(i, false);
 
                         if (Player.IsValid)
                             playerData.InsertPlayer(i, config.g_hCVEnable, config.g_hCVSaveData, config.g_hCVBotSaveStats);
@@ -147,7 +188,7 @@ namespace WpCShpRpg
                 using (MySqlConnection connection = new(ConnectionString))
                 {
                     connection.Open();
-                    sQuery = $"UPDATE {TBL_PLAYERS} SET level = {iStartLevel}, experience = 0, credits = {iStartCredits}, lastreset = {Server.CurrentTime}";
+                    sQuery = $"UPDATE players SET level = {iStartLevel}, experience = 0, credits = {iStartCredits}, lastreset = {((DateTimeOffset)DateTime.Now).ToUnixTimeSeconds()}";
                     MySqlCommand command = new MySqlCommand(sQuery, connection);
                     command.ExecuteNonQuery();
 
@@ -166,7 +207,7 @@ namespace WpCShpRpg
                         if (Player.IsValid)
                         {
                             playerData.ResetStats(i);
-                            playerData.SetPlayerLastReset(i, Server.CurrentTime);
+                            playerData.SetPlayerLastReset(i, ((DateTimeOffset)DateTime.Now).ToUnixTimeSeconds());
                         }
                     }
                 }
@@ -224,6 +265,78 @@ namespace WpCShpRpg
                 connection.Open();
                 MySqlCommand command = new MySqlCommand($"SELECT upgrade_id FROM upgrades WHERE shortname = \"{upgrade.shortName}\";", connection);
                 command.ExecuteNonQuery();
+                connection.Close();
+            }
+        }
+
+        public void GetPlayerInfo(string sQuery, int client)
+        {
+            Server.PrintToConsole("GetPlayerInfo GetPlayerInfo GetPlayerInfo!");
+
+            using (MySqlConnection connection = new(ConnectionString))
+            {
+                connection.Open();
+                MySqlCommand command = new MySqlCommand(sQuery, connection);
+                using (MySqlDataReader reader = command.ExecuteReader())
+                {
+                    if (reader.Read())
+                    {
+                        PlayerData.g_iPlayerInfo[client].dbId = reader.GetInt32(0);
+                        PlayerData.g_iPlayerInfo[client].level = reader.GetUInt32(1);
+                        PlayerData.g_iPlayerInfo[client].experience = reader.GetUInt32(2);
+                        PlayerData.g_iPlayerInfo[client].credits = reader.GetUInt32(3);
+                        PlayerData.g_iPlayerInfo[client].lastReset = reader.GetInt32(4);
+                        PlayerData.g_iPlayerInfo[client].lastSeen = reader.GetInt32(5);
+                        PlayerData.g_iPlayerInfo[client].showMenuOnLevelup = reader.GetInt32(6) != 0;
+                        PlayerData.g_iPlayerInfo[client].fadeOnLevelup = reader.GetInt32(7) != 0;
+                    }
+                }
+
+                string query = $"SELECT upgrade_id, purchasedlevel, selectedlevel, enabled, visuals, sounds FROM player_upgrades WHERE player_id = @playerId";
+                try
+                {
+                    using (MySqlDataReader reader = command.ExecuteReader())
+                    {
+                        if (!reader.HasRows)
+                        {
+                            playerData.InsertPlayer(client, config.g_hCVEnable, config.g_hCVSaveData, config.g_hCVBotSaveStats);
+                            return;
+                        }
+
+                        if (reader.Read())
+                        {
+                            PlayerData.g_iPlayerInfo[client].dataLoadedFromDB = true;
+
+                            int upgradeId = reader.GetInt32(0);
+                            InternalUpgradeInfo upgrade = upgrades.GetUpgradeByDatabaseId(upgradeId);
+                            PlayerUpgradeInfo playerupgrade = GetPlayerUpgradeInfoByIndex(client, upgrade.index);
+
+                            playerupgrade.purchasedlevel = reader.GetUInt32(1);
+                            playerupgrade.selectedlevel = reader.GetUInt32(2);
+                            playerupgrade.enabled = reader.GetBoolean(3);
+                            playerupgrade.visuals = reader.GetBoolean(4);
+                            playerupgrade.sounds = reader.GetBoolean(5);
+
+                            playerData.SavePlayerUpgradeInfo(client, upgrade.index, playerupgrade);
+
+                            upgrades.SetClientPurchasedUpgradeLevel(client, upgrade.index, reader.GetUInt32(1));
+
+                            // Make sure the database is sane.. People WILL temper with it manually.
+                            uint SelectedLevel = reader.GetUInt32(2);
+                            if (SelectedLevel > upgrades.GetClientPurchasedUpgradeLevel(client, upgrade.index))
+                                SelectedLevel = upgrades.GetClientPurchasedUpgradeLevel(client, upgrade.index);
+
+                            upgrades.SetClientSelectedUpgradeLevel(client, upgrade.index, SelectedLevel);
+                        }
+
+                        playerData.CheckItemMaxLevels(client);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Server.PrintToConsole($"Unable to load player data: {ex.Message}");
+                }
+
                 connection.Close();
             }
         }

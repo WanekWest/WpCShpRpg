@@ -386,7 +386,7 @@ namespace WpCShpRpg
                 if (player == null || player.UserId <= 0 || !player.IsValid || player.IsBot || player.UserId == null)
                     continue;
 
-                playerData.InitPlayerNewUpgrade(i);
+                PlayerData.InitPlayerNewUpgrade(i);
             }
 
             // We're not in the process of fetching the upgrade info from the database.
@@ -448,6 +448,22 @@ namespace WpCShpRpg
             }
 
             return false;
+        }
+
+        public InternalUpgradeInfo GetUpgradeByDatabaseId(int iDatabaseId)
+        {
+            InternalUpgradeInfo upgrade = GetUpgradeByIndex(0);
+            int iSize = GetUpgradeCount();
+            for (int i = 0; i < iSize; i++)
+            {
+                upgrade = GetUpgradeByIndex(0);
+                if (upgrade.databaseId == iDatabaseId)
+                {
+                    return upgrade;
+                }
+            }
+
+            return upgrade;
         }
     }
 }

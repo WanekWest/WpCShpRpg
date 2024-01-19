@@ -197,7 +197,7 @@ namespace WpCShpRpg
             }
             else
             {
-                if (playerData.BuyClientUpgrade(Client, UpgradeIndex))
+                if (PlayerData.BuyClientUpgrade(Client, UpgradeIndex))
                 {
                     player.PrintToCenter("Навык прокачки повышен!");
                     if (config.g_hCVShowUpgradePurchase)

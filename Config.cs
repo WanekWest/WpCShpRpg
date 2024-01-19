@@ -408,24 +408,16 @@ namespace WpCShpRpg
             try
             {
                 string json = File.ReadAllText(configPath);
-                Server.PrintToConsole($"json is {json}");
-                // var dbConfig = JsonSerializer.Deserialize<DatabaseConfig>(json)!.CssRpgDb;
-
                 var config = JsonSerializer.Deserialize<DatabaseConfig>(File.ReadAllText(configPath))!;
+
                 if (config.CssRpgDb == null)
                 {
                     throw new Exception("Объект 'Database' не найден в конфигурационном файле.");
                 }
 
                 var dbConfig = config.CssRpgDb;
-                Server.PrintToConsole($"dbConfig is {dbConfig}");
 
                 return $"Server={dbConfig.Host};Database={dbConfig.Database};User ID={dbConfig.User};Password={dbConfig.Password};";
-
-                // string connectionString = $"Server={dbConfig.Host};Database={dbConfig.Database};Uid={dbConfig.User};Pwd={dbConfig.Password};Port={dbConfig.Port};";
-                // Server.PrintToConsole($"connectionString is {connectionString}");
-                // 
-                // return connectionString;
             }
             catch (Exception ex)
             {

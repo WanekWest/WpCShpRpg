@@ -16,10 +16,10 @@ namespace WpCShpRpg
         private string ModuleDirectory;
 
         public delegate void BuyUpgradeHandler(int client, string shortName, uint currentLevel, ref bool cancel);
-        public event BuyUpgradeHandler OnBuyUpgrade;
+        public static event BuyUpgradeHandler OnBuyUpgrade;
 
         public delegate void BuyUpgradePostHandler(int client, string shortName, uint currentLevel);
-        public event BuyUpgradePostHandler BuyUpgradePost;
+        public static event BuyUpgradePostHandler BuyUpgradePost;
 
         public delegate void SellUpgradeHandler(int client, string shortName, uint iCurrentLevel, ref bool cancel);
         public event SellUpgradeHandler SellUpgrade;
@@ -138,8 +138,8 @@ namespace WpCShpRpg
 
         public static PlayerInfo[] g_iPlayerInfo = new PlayerInfo[Server.MaxPlayers + 1];
         public SessionStats[] g_iPlayerSessionStartStats = new SessionStats[Server.MaxPlayers + 1];
-        public bool[] g_bFirstLoaded = new bool[Server.MaxPlayers + 1];
-        public string[,] g_sOriginalBotName = new string[Server.MaxPlayers + 1, 255];
+        public static bool[] g_bFirstLoaded = new bool[Server.MaxPlayers + 1];
+        public static string[,] g_sOriginalBotName = new string[Server.MaxPlayers + 1, 255];
         public bool[] g_bBackToStatsMenu = new bool[Server.MaxPlayers + 1];
 
         public void RemovePlayer(int client, bool g_hCVShowMenuOnLevelDefault, bool g_hCVFadeOnLevelDefault, bool bKeepBotName = false)
@@ -222,7 +222,7 @@ namespace WpCShpRpg
             g_iPlayerInfo[client].credits = config.g_hCVCreditsStart;
         }
 
-        public void InitPlayer(int client, bool bGetBotName = true)
+        public static void InitPlayer(int client, bool bGetBotName = true)
         {
             g_bFirstLoaded[client] = true;
 
@@ -236,8 +236,8 @@ namespace WpCShpRpg
             g_iPlayerInfo[client].dataLoadedFromDB = false;
             g_iPlayerInfo[client].showMenuOnLevelup = config.g_hCVShowMenuOnLevelDefault;
             g_iPlayerInfo[client].fadeOnLevelup = config.g_hCVFadeOnLevelDefault;
-            g_iPlayerInfo[client].lastReset = Server.CurrentTime;
-            g_iPlayerInfo[client].lastSeen = Server.CurrentTime;
+            g_iPlayerInfo[client].lastReset = ((DateTimeOffset)DateTime.Now).ToUnixTimeSeconds();
+            g_iPlayerInfo[client].lastSeen = ((DateTimeOffset)DateTime.Now).ToUnixTimeSeconds();
 
             g_iPlayerInfo[client].upgrades = new ArrayList();
             int iNumUpgrades = Upgrades.GetUpgradeCount();
@@ -264,10 +264,10 @@ namespace WpCShpRpg
             if (!g_hCVEnable || !g_hCVSaveData || !g_hCVBotSaveStats)
                 return;
 
-            string sName;
+            string sName ;
 
             CCSPlayerController? player = Utilities.GetPlayerFromIndex(client);
-            if (player != null && player.IsValid && !player.IsBot)
+            if (player != null && player.IsValid)
             {
                 sName = player.PlayerName;
             }
@@ -283,27 +283,25 @@ namespace WpCShpRpg
                 sName = g_sOriginalBotName[client, 0];
             }
 
-            string tableName = "players";
             string query;
-
             if (!player.IsBot)
             {
-                query = $"INSERT INTO {tableName} (name, steamid, level, experience, credits, showmenu, fadescreen, lastseen, lastreset) " +
+                query = $"INSERT INTO players (name, steamid, level, experience, credits, showmenu, fadescreen, lastseen, lastreset) " +
                         $"VALUES ('{sName}', {player.SteamID}, {GetClientLevel(client)}, {GetClientExperience(client)}, " +
-                        $"{GetClientCredits(client)}, {ShowMenuOnLevelUp(client)}, {FadeScreenOnLevelUp(client)}, {Server.CurrentTime}, {Server.CurrentTime})";
+                        $"{GetClientCredits(client)}, {ShowMenuOnLevelUp(client)}, {FadeScreenOnLevelUp(client)}, {((DateTimeOffset)DateTime.Now).ToUnixTimeSeconds()}, {((DateTimeOffset)DateTime.Now).ToUnixTimeSeconds()})";
             }
             else
             {
                 // Для ботов steamid устанавливается как NULL
-                query = $"INSERT INTO {tableName} (name, steamid, level, experience, credits, showmenu, fadescreen, lastseen, lastreset) " +
+                query = $"INSERT INTO players (name, steamid, level, experience, credits, showmenu, fadescreen, lastseen, lastreset) " +
                         $"VALUES ('{sName}', NULL, {GetClientLevel(client)}, {GetClientExperience(client)}, " +
-                        $"{GetClientCredits(client)}, {ShowMenuOnLevelUp(client)}, {FadeScreenOnLevelUp(client)}, {Server.CurrentTime}, {Server.CurrentTime})";
+                        $"{GetClientCredits(client)}, {ShowMenuOnLevelUp(client)}, {FadeScreenOnLevelUp(client)}, {((DateTimeOffset)DateTime.Now).ToUnixTimeSeconds()}, {((DateTimeOffset)DateTime.Now).ToUnixTimeSeconds()})";
             }
 
             database.SendQuery(query);
         }
 
-        public void InitPlayerNewUpgrade(int client)
+        public static void InitPlayerNewUpgrade(int client)
         {
             // Let the player start this upgrade on its set start level by default.
             ArrayList clienUpgrades = GetClientUpgrades(client);
@@ -335,7 +333,7 @@ namespace WpCShpRpg
             }
         }
 
-        public bool GiveClientUpgrade(int client, int iUpgradeIndex)
+        public static bool GiveClientUpgrade(int client, int iUpgradeIndex)
         {
             InternalUpgradeInfo upgrade;
             upgrade = Upgrades.GetUpgradeByIndex(iUpgradeIndex);
@@ -368,7 +366,7 @@ namespace WpCShpRpg
             return true;
         }
 
-        public bool BuyClientUpgrade(int client, int iUpgradeIndex)
+        public static bool BuyClientUpgrade(int client, int iUpgradeIndex)
         {
             InternalUpgradeInfo upgrade = Upgrades.GetUpgradeByIndex(iUpgradeIndex);
 
@@ -582,7 +580,7 @@ namespace WpCShpRpg
             return true;
         }
 
-        public uint[] GetStartLevelAndExperience()
+        public static uint[] GetStartLevelAndExperience()
         {
             // See if the player should start at a higher level than 1?
             uint[] StartLevelCredits = { config.g_hCVLevelStart, config.g_hCVCreditsStart };
@@ -596,7 +594,7 @@ namespace WpCShpRpg
             return StartLevelCredits;
         }
 
-        public ArrayList GetClientUpgrades(int client)
+        public static ArrayList GetClientUpgrades(int client)
         {
             return g_iPlayerInfo[client].upgrades;
         }
@@ -638,7 +636,7 @@ namespace WpCShpRpg
         {
             g_iPlayerSessionStartStats[client] = new SessionStats
             {
-                JoinTime = Server.CurrentTime, // предполагается, что это значение времени в вашей системе
+                JoinTime = ((DateTimeOffset)DateTime.Now).ToUnixTimeSeconds(), // предполагается, что это значение времени в вашей системе
                 JoinLevel = GetClientLevel(client), // аналогично вызову функции в вашей системе
                 JoinExperience = GetClientExperience(client),
                 JoinCredits = GetClientCredits(client),
