@@ -2,10 +2,10 @@
 using CounterStrikeSharp.API.Core;
 using CounterStrikeSharp.API.Modules.Entities;
 using MySqlConnector;
-using static WpCShpRpg.PlayerData;
-using static WpCShpRpg.Upgrades;
+using static WpCShpRpg.Core.Additions.PlayerData;
+using static WpCShpRpg.Core.Additions.Upgrades;
 
-namespace WpCShpRpg
+namespace WpCShpRpg.Core.Additions
 {
     public class Database
     {
@@ -174,7 +174,7 @@ namespace WpCShpRpg
                     {
                         // Keep the original bot names intact, to avoid saving renamed bots.
                         playerData.RemovePlayer(i, config.g_hCVShowMenuOnLevelDefault, config.g_hCVFadeOnLevelDefault, true);
-                        PlayerData.InitPlayer(i, false);
+                        InitPlayer(i, false);
 
                         if (Player.IsValid)
                             playerData.InsertPlayer(i, config.g_hCVEnable, config.g_hCVSaveData, config.g_hCVBotSaveStats);
@@ -258,7 +258,7 @@ namespace WpCShpRpg
         public void CheckUpgradeDatabaseEntry(InternalUpgradeInfo upgrade)
         {
             upgrade.databaseLoading = true;
-            Upgrades.SaveUpgradeConfig(upgrade);
+            SaveUpgradeConfig(upgrade);
 
             using (MySqlConnection connection = new(ConnectionString))
             {
@@ -281,14 +281,14 @@ namespace WpCShpRpg
                 {
                     if (reader.Read())
                     {
-                        PlayerData.g_iPlayerInfo[client].dbId = reader.GetInt32(0);
-                        PlayerData.g_iPlayerInfo[client].level = reader.GetUInt32(1);
-                        PlayerData.g_iPlayerInfo[client].experience = reader.GetUInt32(2);
-                        PlayerData.g_iPlayerInfo[client].credits = reader.GetUInt32(3);
-                        PlayerData.g_iPlayerInfo[client].lastReset = reader.GetInt32(4);
-                        PlayerData.g_iPlayerInfo[client].lastSeen = reader.GetInt32(5);
-                        PlayerData.g_iPlayerInfo[client].showMenuOnLevelup = reader.GetInt32(6) != 0;
-                        PlayerData.g_iPlayerInfo[client].fadeOnLevelup = reader.GetInt32(7) != 0;
+                        g_iPlayerInfo[client].dbId = reader.GetInt32(0);
+                        g_iPlayerInfo[client].level = reader.GetUInt32(1);
+                        g_iPlayerInfo[client].experience = reader.GetUInt32(2);
+                        g_iPlayerInfo[client].credits = reader.GetUInt32(3);
+                        g_iPlayerInfo[client].lastReset = reader.GetInt32(4);
+                        g_iPlayerInfo[client].lastSeen = reader.GetInt32(5);
+                        g_iPlayerInfo[client].showMenuOnLevelup = reader.GetInt32(6) != 0;
+                        g_iPlayerInfo[client].fadeOnLevelup = reader.GetInt32(7) != 0;
                     }
                 }
 
@@ -305,7 +305,7 @@ namespace WpCShpRpg
 
                         if (reader.Read())
                         {
-                            PlayerData.g_iPlayerInfo[client].dataLoadedFromDB = true;
+                            g_iPlayerInfo[client].dataLoadedFromDB = true;
 
                             int upgradeId = reader.GetInt32(0);
                             InternalUpgradeInfo upgrade = upgrades.GetUpgradeByDatabaseId(upgradeId);

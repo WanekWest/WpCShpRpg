@@ -12,8 +12,15 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\CoreApi\CoreApi.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Reference Include="CounterStrikeSharp.API">
       <HintPath>..\CounterStrikeSharp.API.dll</HintPath>
+    </Reference>
+    <Reference Include="Modularity">
+      <HintPath>..\Modularity.dll</HintPath>
     </Reference>
   </ItemGroup>
 

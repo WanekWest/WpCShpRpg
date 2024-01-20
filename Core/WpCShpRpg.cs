@@ -3,10 +3,13 @@ using CounterStrikeSharp.API.Core;
 using CounterStrikeSharp.API.Core.Attributes.Registration;
 using CounterStrikeSharp.API.Modules.Commands;
 using CounterStrikeSharp.API.Modules.Menu;
+using Modularity;
+using WpCShpRpg.Core.Additions;
+using WpCShpRpgCoreApi;
 
-namespace WpCShpRpg
+namespace WpCShpRpg.Core
 {
-    public class WpCShpRpg : BasePlugin
+    public class WpCShpRpg : BasePlugin, ICorePlugin
     {
         public override string ModuleName => "WpCShpRPG | Rpg Mode";
         public override string ModuleVersion => "0.0.1";
@@ -19,20 +22,26 @@ namespace WpCShpRpg
         private static Upgrades upgrades;
         private static Menu menu;
 
+        public static event Action OnRpgCoreLoaded;
+
+        public static bool RpgCoreLoaded;
+
         public override void Load(bool hotReload)
         {
+            RpgCoreLoaded = false;
+
             config = new ConfiguraionFiles();
 
             if (config.LoadModCondiguration(ModuleDirectory) == false)
             {
-                Server.PrintToConsole(("[CSSRPG] Ядро не было инициализировано!"));
+                Server.PrintToConsole("[CSSRPG] Ядро не было инициализировано!");
                 return;
             }
 
             LoadExecutionFile();
 
             // TODO: Меню и регистрация.
-            Menu menu = new Menu();
+            menu = new Menu();
             menu.CreateRpgMenu();
 
             // TODO: Регистрация форвардов. 
@@ -48,31 +57,12 @@ namespace WpCShpRpg
             catch (Exception ex)
             {
                 Server.PrintToConsole($"Ошибка при инициализации базы данных: {ex.Message}");
-                return;
+                WorkWithDatabase();
             }
 
-            PlayerData playerData = new PlayerData(ModuleDirectory);
-            Upgrades upgrades = new Upgrades(ModuleDirectory);
-
-            playerData.SetConfig(config);
-            upgrades.SetConfig(config);
             menu.SetConfig(config);
-
             menu.SetDatabase(database);
-            upgrades.SetDatabase(database);
-            playerData.SetDatabase(database);
-
-            menu.SetPlayerData(playerData);
-            upgrades.SetPlayerData(playerData);
-            database.SetPlayerData(playerData);
-
             database.SetMenu(menu);
-            upgrades.SetMenu(menu);
-            playerData.SetMenu(menu);
-
-            database.SetUpgrades(upgrades);
-            playerData.SetUpgrades(upgrades);
-            menu.SetUpgrades(upgrades);
 
             // TODO: Инициализация файлов перевода.
 
@@ -80,6 +70,68 @@ namespace WpCShpRpg
             RegisterEventHandler<EventPlayerDeath>(Event_OnPlayerDeath);
             RegisterEventHandler<EventRoundEnd>(Event_OnRoundEnd);
             RegisterEventHandler<EventPlayerDisconnect>(Event_OnPlayerDisconnect);
+
+            RegisterListener<Listeners.OnMapStart>(name =>
+            {
+                Server.PrintToConsole("OnMapStart OnMapStart 1");
+                playerData = new PlayerData();
+                playerData.SetConfig(config);
+                playerData.SetDatabase(database);
+                menu.SetPlayerData(playerData);
+                database.SetPlayerData(playerData);
+                playerData.SetMenu(menu);
+
+                WorkWithUpgradesClass();
+
+                RpgCoreLoaded = true;
+                OnRpgCoreLoaded?.Invoke();
+
+                LoadCore(new PluginApis());
+            });
+        }
+
+        private void WorkWithUpgradesClass()
+        {
+            if (ModuleDirectory == null)
+            {
+                AddTimer(2.0f, WorkWithUpgradesClass);
+            }
+            else
+            {
+                upgrades = new Upgrades(ModuleDirectory);
+                upgrades.SetConfig(config);
+                upgrades.SetDatabase(database);
+                upgrades.SetPlayerData(playerData);
+                upgrades.SetMenu(menu);
+
+                database.SetUpgrades(upgrades);
+                playerData.SetUpgrades(upgrades);
+                menu.SetUpgrades(upgrades);
+            }
+
+            return;
+        }
+
+        private void WorkWithDatabase()
+        {
+            if (ModuleDirectory == null)
+            {
+                AddTimer(2.0f, WorkWithDatabase);
+            }
+            else
+            {
+                database = new Database(config, config.LoadDatabaseConfig(ModuleDirectory));
+                database.InitDatabase();
+                database.DatabaseMaid(config.g_hCVSaveData, config.g_hCVPlayerExpire);
+            }
+
+            return;
+        }
+
+        public void LoadCore(IApiRegisterer apiRegisterer)
+        {
+            Console.WriteLine("Loading WpCssRpg Core");
+            apiRegisterer.Register<IWpCShpRpgCoreApi>(new WpCShpRpgCoreApi());
         }
 
         [GameEventHandler]
@@ -141,7 +193,7 @@ namespace WpCShpRpg
         {
             if (player != null && player.IsValid && !player.IsBot)
             {
-                if (menu.IsHelpMenuCreated)
+                if (Menu.IsHelpMenuCreated)
                     ChatMenus.OpenMenu(player, menu.RpgMenu);
             }
         }
@@ -151,7 +203,7 @@ namespace WpCShpRpg
         {
             if (player != null && player.IsValid && !player.IsBot)
             {
-                if (menu.IsHelpMenuCreated)
+                if (Menu.IsHelpMenuCreated)
                     ChatMenus.OpenMenu(player, menu.RpgMenu);
             }
         }
@@ -344,6 +396,14 @@ namespace WpCShpRpg
         public Upgrades GetUpgradesClass()
         {
             return upgrades;
+        }
+    }
+
+    public class WpCShpRpgCoreApi : IWpCShpRpgCoreApi
+    {
+        public bool IsRpgCoreLoaded()
+        {
+            return WpCShpRpg.RpgCoreLoaded;
         }
     }
 }

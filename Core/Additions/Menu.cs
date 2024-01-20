@@ -1,8 +1,10 @@
-﻿using CounterStrikeSharp.API.Core;
+﻿using CounterStrikeSharp.API;
+using CounterStrikeSharp.API.Core;
 using CounterStrikeSharp.API.Modules.Menu;
 using CounterStrikeSharp.API.Modules.Utils;
-using static WpCShpRpg.PlayerData;
-using static WpCShpRpg.Upgrades;
+using WpCShpRpg.Core.Additions;
+using static WpCShpRpg.Core.Additions.PlayerData;
+using static WpCShpRpg.Core.Additions.Upgrades;
 
 namespace WpCShpRpg
 {
@@ -23,19 +25,19 @@ namespace WpCShpRpg
         private static PlayerData playerData;
         private static Upgrades upgrades;
 
-        public bool IsRpgMenuCreated { get; } = false;
+        public static bool IsRpgMenuCreated { get; } = false;
 
-        public bool IsBuyUpgradesMenuCreated { get; } = false;
+        public static bool IsBuyUpgradesMenuCreated { get; } = false;
 
-        public bool IsSellUpgradesMenuCreated { get; } = false;
+        public static bool IsSellUpgradesMenuCreated { get; } = false;
 
-        public bool IsSettingsMenuCreated { get; } = false;
+        public static bool IsSettingsMenuCreated { get; } = false;
 
-        public bool IsHelpMenuCreated { get; } = false;
+        public static bool IsHelpMenuCreated { get; private set; } = false;
 
         public Menu()
         {
-            
+
         }
 
         public void SetDatabase(Database db)
@@ -62,6 +64,7 @@ namespace WpCShpRpg
         {
             RpgMenu.AddMenuOption("Навыки", (player, option) =>
             {
+                Server.PrintToChatAll("Навыки activated");
                 CreatePlayerSkillsMenu(player, 1);
             });
             RpgMenu.AddMenuOption("Продать навыки", (player, option) =>
@@ -87,12 +90,14 @@ namespace WpCShpRpg
                 // HACK: Вынести все проверки непосредственно в КсШарп.
                 player.PrintToCenter("Это меню не для Вас!");
             });
+
+            IsHelpMenuCreated = true;
         }
 
         private void CreateLaseExperianceMenuForPlayer(CCSPlayerController? player)
         {
             int client;
-            if (player != null && player.IsValid && !player.IsBot && player.UserId != null && player.UserId > 0)
+            if (player.UserId != null && player.UserId > 0)
             {
                 client = Convert.ToInt32(player.UserId);
             }
@@ -101,7 +106,7 @@ namespace WpCShpRpg
                 return;
             }
 
-            List<int> hLastExperience = playerData.g_iPlayerSessionStartStats[client].LastExperience;
+            List<int> hLastExperience = PlayerData.g_iPlayerSessionStartStats[client].LastExperience;
 
             int iSize = hLastExperience.Count;
             if (iSize > 0)
@@ -143,7 +148,8 @@ namespace WpCShpRpg
         private void CreatePlayerSkillsMenu(CCSPlayerController? player, int TypeOfMethod)
         {
             int client;
-            if (player != null && player.IsValid && !player.IsBot && player.UserId != null && player.UserId > 0)
+            Server.PrintToChatAll($"{player.UserId}");
+            if (player.UserId != null && player.UserId > 0)
             {
                 client = Convert.ToInt32(player.UserId);
             }

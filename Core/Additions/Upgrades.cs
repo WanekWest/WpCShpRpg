@@ -2,10 +2,11 @@
 using CounterStrikeSharp.API.Core;
 using CounterStrikeSharp.API.Modules.Cvars;
 using System.Collections;
+using System.Reflection.Metadata;
 using static System.Runtime.InteropServices.JavaScript.JSType;
-using static WpCShpRpg.PlayerData;
+using static WpCShpRpg.Core.Additions.PlayerData;
 
-namespace WpCShpRpg
+namespace WpCShpRpg.Core.Additions
 {
     public class Upgrades
     {
@@ -14,18 +15,19 @@ namespace WpCShpRpg
         private static PlayerData playerData;
         private static Menu menu;
 
-        private static string ModuleDirectory;
+        private static string moduleDirectory;
 
         // Делегат, описывающий сигнатуру методов для события
         public delegate void UpgradeRegisteredHandler(string shortName);
         // Событие, которое другие объекты могут слушать
         public static event UpgradeRegisteredHandler OnUpgradeRegistered;
 
+        private static List<InternalUpgradeInfo> g_hUpgrades = new List<InternalUpgradeInfo>();
+
 
         public Upgrades(string moduleDirectory)
         {
-            ModuleDirectory = moduleDirectory;
-            g_hUpgrades = new ArrayList();
+            moduleDirectory = moduleDirectory;
         }
 
         public void SetDatabase(Database db)
@@ -140,16 +142,14 @@ namespace WpCShpRpg
             }
         }
 
-        static ArrayList g_hUpgrades;
-
         static public InternalUpgradeInfo GetUpgradeByIndex(int iIndex)
         {
-            return (InternalUpgradeInfo)g_hUpgrades[iIndex];
+            return g_hUpgrades[iIndex];
         }
 
         public static int GetUpgradeCount()
         {
-            return g_hUpgrades.Count;
+            return g_hUpgrades.Count();
         }
 
         public static bool IsValidUpgrade(InternalUpgradeInfo upgrade)
@@ -168,13 +168,13 @@ namespace WpCShpRpg
 
         public uint GetClientPurchasedUpgradeLevel(int client, int iUpgradeIndex)
         {
-            PlayerUpgradeInfo playerupgrade = PlayerData.GetPlayerUpgradeInfoByIndex(client, iUpgradeIndex);
+            PlayerUpgradeInfo playerupgrade = GetPlayerUpgradeInfoByIndex(client, iUpgradeIndex);
             return playerupgrade.purchasedlevel;
         }
 
         public void SetClientPurchasedUpgradeLevel(int client, int iUpgradeIndex, uint iLevel)
         {
-            PlayerUpgradeInfo playerupgrade = PlayerData.GetPlayerUpgradeInfoByIndex(client, iUpgradeIndex);
+            PlayerUpgradeInfo playerupgrade = GetPlayerUpgradeInfoByIndex(client, iUpgradeIndex);
             // Differ for selected and purchased level!
             playerupgrade.purchasedlevel = iLevel;
             playerData.SavePlayerUpgradeInfo(client, iUpgradeIndex, playerupgrade);
@@ -197,7 +197,7 @@ namespace WpCShpRpg
             if (iLevel == iOldLevel)
                 return;
 
-            PlayerUpgradeInfo playerupgrade = PlayerData.GetPlayerUpgradeInfoByIndex(client, iUpgradeIndex);
+            PlayerUpgradeInfo playerupgrade = GetPlayerUpgradeInfoByIndex(client, iUpgradeIndex);
             // Differ for selected and purchased level!
             playerupgrade.selectedlevel = iLevel;
             playerData.SavePlayerUpgradeInfo(client, iUpgradeIndex, playerupgrade);
@@ -239,7 +239,7 @@ namespace WpCShpRpg
             if (iLevel <= 1)
                 return iCost;
 
-            uint iSale = (uint)Math.Floor(iCost * (fSalePercent > 1.0 ? (fSalePercent / 100.0) : fSalePercent) + 0.5);
+            uint iSale = (uint)Math.Floor(iCost * (fSalePercent > 1.0 ? fSalePercent / 100.0 : fSalePercent) + 0.5);
             uint iCreditsInc = config.g_hCVCreditsInc;
             if (iCreditsInc <= 1)
                 return iSale;
@@ -295,6 +295,7 @@ namespace WpCShpRpg
         public static void RegisterUpgradeType(string sName, string sShortName, string sDescription, uint iMaxLevelBarrier, bool bDefaultEnable,
             uint iDefaultMaxLevel, uint iDefaultStartCost, uint iDefaultCostInc, uint iDefaultAdminFlags, Function queryCallback, Function activeCallback)
         {
+            Server.PrintToConsole($"Загрузка скилла: {sShortName}");
             // There already is an upgrade with that name loaded. Don't load it twice. shortnames have to be unique.
             int UpgradeIndex = IsUpgradeAvailable(sShortName);
             if (UpgradeIndex != -1)
@@ -329,10 +330,10 @@ namespace WpCShpRpg
             upgrade.shortName = sShortName;
             upgrade.description = sDescription;
 
-            if (!config.CreateSkillConfig(ModuleDirectory, sShortName, sName))
+            if (!config.CreateSkillConfig(moduleDirectory, sShortName, sName))
                 return;
 
-            Dictionary<string, string> parameters = config.GetParamsFromConfig(ModuleDirectory, sShortName);
+            Dictionary<string, string> parameters = config.GetParamsFromConfig(moduleDirectory, sShortName);
             if (parameters.TryGetValue("wpcshprpg_" + sShortName + "_enable", out string enabledValue))
             {
                 upgrade.enabled = enabledValue == "1";
@@ -386,7 +387,7 @@ namespace WpCShpRpg
                 if (player == null || player.UserId <= 0 || !player.IsValid || player.IsBot || player.UserId == null)
                     continue;
 
-                PlayerData.InitPlayerNewUpgrade(i);
+                InitPlayerNewUpgrade(i);
             }
 
             // We're not in the process of fetching the upgrade info from the database.
@@ -411,6 +412,39 @@ namespace WpCShpRpg
             return;
         }
 
+        public static void UnregisterUpgradeType(string ShortName)
+        {
+            int iSize = GetUpgradeCount();
+            InternalUpgradeInfo upgrade;
+            for (int i = 0; i < iSize; i++)
+            {
+                upgrade = GetUpgradeByIndex(i);
+
+                if (!IsValidUpgrade(upgrade))
+                    continue;
+
+                if (string.Equals(upgrade.shortName, ShortName))
+                {
+                    // Set this upgrade as unavailable! Don't process anything in the future.
+                    upgrade.unavailable = true;
+                    SaveUpgradeConfig(upgrade);
+                    return;
+                }
+            }
+
+            Server.PrintToConsole($"Не удалось найти апгрейд с названием: {ShortName}");
+            return;
+        }
+
+        public static bool UpgradeExists(string ShortName)
+        {
+            InternalUpgradeInfo upgrade = GetUpgradeByIndex(0);
+            if (!GetUpgradeByShortname(ShortName, ref upgrade))
+                return false;
+
+            return IsValidUpgrade(upgrade);
+        }
+
         public static void CallUpgradeRegistered(string shortName)
         {
             // Проверяем, есть ли подписчики на событие
@@ -430,12 +464,12 @@ namespace WpCShpRpg
                 return false;
             }
 
-            config.CreateSkillConfig(ModuleDirectory, shortname, name);
+            config.CreateSkillConfig(moduleDirectory, shortname, name);
 
             return true;
         }
 
-        public bool GetUpgradeByShortname(string sShortName, ref InternalUpgradeInfo upgrade)
+        public static bool GetUpgradeByShortname(string sShortName, ref InternalUpgradeInfo upgrade)
         {
             for (int i = 0; i < GetUpgradeCount(); i++)
             {

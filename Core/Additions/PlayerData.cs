@@ -1,10 +1,9 @@
 ﻿using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
-using CounterStrikeSharp.API.Modules.Entities;
 using System.Collections;
-using static WpCShpRpg.Upgrades;
+using static WpCShpRpg.Core.Additions.Upgrades;
 
-namespace WpCShpRpg
+namespace WpCShpRpg.Core.Additions
 {
     public class PlayerData
     {
@@ -12,8 +11,6 @@ namespace WpCShpRpg
         private static Upgrades upgradesClass;
         private static Database database;
         private static Menu menu;
-
-        private string ModuleDirectory;
 
         public delegate void BuyUpgradeHandler(int client, string shortName, uint currentLevel, ref bool cancel);
         public static event BuyUpgradeHandler OnBuyUpgrade;
@@ -45,9 +42,13 @@ namespace WpCShpRpg
         public delegate void ClientExperiencePostHandler(int client, uint ClientExperiencePost, uint currentLevel);
         public event ClientExperiencePostHandler ClientExperiencePost;
 
-        public PlayerData(string ModuleDirectory)
+        public PlayerData()
         {
-            this.ModuleDirectory = ModuleDirectory;
+            g_iPlayerInfo = new PlayerInfo[Server.MaxPlayers + 1];
+            g_iPlayerSessionStartStats = new SessionStats[Server.MaxPlayers + 1];
+            g_bFirstLoaded = new bool[Server.MaxPlayers + 1];
+            g_sOriginalBotName = new string[Server.MaxPlayers + 1, 255];
+            g_bBackToStatsMenu = new bool[Server.MaxPlayers + 1];
         }
 
         public void SetDatabase(Database db)
@@ -136,11 +137,11 @@ namespace WpCShpRpg
             }
         }
 
-        public static PlayerInfo[] g_iPlayerInfo = new PlayerInfo[Server.MaxPlayers + 1];
-        public SessionStats[] g_iPlayerSessionStartStats = new SessionStats[Server.MaxPlayers + 1];
-        public static bool[] g_bFirstLoaded = new bool[Server.MaxPlayers + 1];
-        public static string[,] g_sOriginalBotName = new string[Server.MaxPlayers + 1, 255];
-        public bool[] g_bBackToStatsMenu = new bool[Server.MaxPlayers + 1];
+        public static PlayerInfo[] g_iPlayerInfo;
+        public static SessionStats[] g_iPlayerSessionStartStats;
+        public static bool[] g_bFirstLoaded;
+        public static string[,] g_sOriginalBotName;
+        public static bool[] g_bBackToStatsMenu;
 
         public void RemovePlayer(int client, bool g_hCVShowMenuOnLevelDefault, bool g_hCVFadeOnLevelDefault, bool bKeepBotName = false)
         {
@@ -191,8 +192,8 @@ namespace WpCShpRpg
         {
             Server.PrintToChatAll($"Stats have been reset for player: {client}");
 
-            int iSize = Upgrades.GetUpgradeCount();
-            Upgrades.InternalUpgradeInfo upgrade;
+            int iSize = GetUpgradeCount();
+            InternalUpgradeInfo upgrade;
             PlayerUpgradeInfo playerupgrade;
             bool bWasEnabled;
             for (int i = 0; i < iSize; i++)
@@ -211,9 +212,9 @@ namespace WpCShpRpg
                 if (!bWasEnabled)
                     continue;
 
-                upgrade = Upgrades.GetUpgradeByIndex(i);
+                upgrade = GetUpgradeByIndex(i);
 
-                if (Upgrades.IsValidUpgrade(upgrade) == false)
+                if (IsValidUpgrade(upgrade) == false)
                     continue;
             }
 
@@ -240,7 +241,7 @@ namespace WpCShpRpg
             g_iPlayerInfo[client].lastSeen = ((DateTimeOffset)DateTime.Now).ToUnixTimeSeconds();
 
             g_iPlayerInfo[client].upgrades = new ArrayList();
-            int iNumUpgrades = Upgrades.GetUpgradeCount();
+            int iNumUpgrades = GetUpgradeCount();
 
             for (int i = 0; i < iNumUpgrades; i++)
             {
@@ -264,7 +265,7 @@ namespace WpCShpRpg
             if (!g_hCVEnable || !g_hCVSaveData || !g_hCVBotSaveStats)
                 return;
 
-            string sName ;
+            string sName;
 
             CCSPlayerController? player = Utilities.GetPlayerFromIndex(client);
             if (player != null && player.IsValid)
@@ -307,7 +308,7 @@ namespace WpCShpRpg
             ArrayList clienUpgrades = GetClientUpgrades(client);
             int iIndex = clienUpgrades.Count;
             InternalUpgradeInfo upgrade;
-            upgrade = Upgrades.GetUpgradeByIndex(iIndex);
+            upgrade = GetUpgradeByIndex(iIndex);
 
             PlayerUpgradeInfo playerupgrade;
             playerupgrade.purchasedlevel = 0;
@@ -336,9 +337,9 @@ namespace WpCShpRpg
         public static bool GiveClientUpgrade(int client, int iUpgradeIndex)
         {
             InternalUpgradeInfo upgrade;
-            upgrade = Upgrades.GetUpgradeByIndex(iUpgradeIndex);
+            upgrade = GetUpgradeByIndex(iUpgradeIndex);
 
-            if (Upgrades.IsValidUpgrade(upgrade) == false)
+            if (IsValidUpgrade(upgrade) == false)
                 return false;
 
             uint iCurrentLevel = upgradesClass.GetClientPurchasedUpgradeLevel(client, iUpgradeIndex);
@@ -368,7 +369,7 @@ namespace WpCShpRpg
 
         public static bool BuyClientUpgrade(int client, int iUpgradeIndex)
         {
-            InternalUpgradeInfo upgrade = Upgrades.GetUpgradeByIndex(iUpgradeIndex);
+            InternalUpgradeInfo upgrade = GetUpgradeByIndex(iUpgradeIndex);
 
             uint iCurrentLevel = upgradesClass.GetClientPurchasedUpgradeLevel(client, iUpgradeIndex);
 
@@ -392,9 +393,9 @@ namespace WpCShpRpg
 
         public bool TakeClientUpgrade(int client, int iUpgradeIndex)
         {
-            InternalUpgradeInfo upgrade = Upgrades.GetUpgradeByIndex(iUpgradeIndex);
+            InternalUpgradeInfo upgrade = GetUpgradeByIndex(iUpgradeIndex);
 
-            if (Upgrades.IsValidUpgrade(upgrade) == false)
+            if (IsValidUpgrade(upgrade) == false)
                 return false;
 
             uint iCurrentLevel = upgradesClass.GetClientPurchasedUpgradeLevel(client, iUpgradeIndex);
@@ -422,7 +423,7 @@ namespace WpCShpRpg
 
         public bool SellClientUpgrade(int client, int iUpgradeIndex)
         {
-            InternalUpgradeInfo upgrade = Upgrades.GetUpgradeByIndex(iUpgradeIndex);
+            InternalUpgradeInfo upgrade = GetUpgradeByIndex(iUpgradeIndex);
 
             uint iCurrentLevel = upgradesClass.GetClientPurchasedUpgradeLevel(client, iUpgradeIndex);
 
@@ -443,7 +444,7 @@ namespace WpCShpRpg
             bool upgradeBought;
             int currentIndex;
 
-            int size = Upgrades.GetUpgradeCount();
+            int size = GetUpgradeCount();
 
             ArrayList randomBuying = new ArrayList();
             for (int i = 0; i < size; i++)
@@ -459,10 +460,10 @@ namespace WpCShpRpg
                 for (int i = 0; i < size; i++)
                 {
                     currentIndex = (int)randomBuying[i];
-                    var upgrade = Upgrades.GetUpgradeByIndex(currentIndex);
+                    var upgrade = GetUpgradeByIndex(currentIndex);
 
                     // Valid upgrade the bot can use?
-                    if (!Upgrades.IsValidUpgrade(upgrade) || !upgrade.enabled)
+                    if (!IsValidUpgrade(upgrade) || !upgrade.enabled)
                         continue;
 
                     // Don't buy it, if bots aren't allowed to use it at all.
@@ -489,13 +490,13 @@ namespace WpCShpRpg
          */
         public void CheckItemMaxLevels(int client)
         {
-            int iSize = Upgrades.GetUpgradeCount();
+            int iSize = GetUpgradeCount();
             InternalUpgradeInfo upgrade;
             uint iMaxLevel;
             uint iCurrentLevel;
             for (int i = 0; i < iSize; i++)
             {
-                upgrade = Upgrades.GetUpgradeByIndex(i);
+                upgrade = GetUpgradeByIndex(i);
                 iMaxLevel = upgrade.maxLevel;
                 iCurrentLevel = upgradesClass.GetClientPurchasedUpgradeLevel(client, i);
                 while (iCurrentLevel > iMaxLevel)
@@ -668,7 +669,7 @@ namespace WpCShpRpg
                 return 0;
 
             InternalUpgradeInfo upgrade = GetUpgradeByIndex(0);
-            if (!upgradesClass.GetUpgradeByShortname(shortname, ref upgrade) || !IsValidUpgrade(upgrade))
+            if (!GetUpgradeByShortname(shortname, ref upgrade) || !IsValidUpgrade(upgrade))
             {
                 Server.PrintToConsole($"Нету загруженного скилла с навзанием: \"{shortname}\"");
             }
