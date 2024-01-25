@@ -53,7 +53,7 @@ namespace WpCShpRpg
         public uint g_hCVLevelStart { get; private set; }
         public bool g_hCVLevelStartGiveCredits { get; private set; }
 
-        public bool g_hCVUpgradeStartLevelsFree { get; private set; }
+        public static bool g_hCVUpgradeStartLevelsFree { get; private set; }
 
         public uint g_hCVCreditsInc { get; private set; }
         public uint g_hCVCreditsStart { get; private set; }
@@ -75,7 +75,7 @@ namespace WpCShpRpg
         #endregion
 
         #region Парсинг Основного конфига
-        public static Dictionary<string, string> ParseConfigFile(string filePath)
+        public Dictionary<string, string> ParseConfigFile(string filePath)
         {
             var configData = new Dictionary<string, string>();
             foreach (var line in File.ReadAllLines(filePath))
@@ -115,7 +115,7 @@ namespace WpCShpRpg
 
             try
             {
-                Dictionary<string, string> ConfigData = ConfiguraionFiles.ParseConfigFile(configPath);
+                Dictionary<string, string> ConfigData = ParseConfigFile(configPath);
 
                 if (ConfigData.TryGetValue("csshprpg_enable", out string? g_csshprpg_enable))
                 {
@@ -443,7 +443,7 @@ namespace WpCShpRpg
         #endregion
 
         #region Навыки
-        public bool CreateSkillConfig(string ModuleDirectory, string ShortSkillName, string sName)
+        public static bool CreateSkillConfig(string ModuleDirectory, string ShortSkillName, string sName)
         {
             string? ParentDirectory = Directory.GetParent(ModuleDirectory)?.Parent?.FullName;
             if (string.IsNullOrEmpty(ParentDirectory))
@@ -452,7 +452,7 @@ namespace WpCShpRpg
                 return false;
             }
 
-            string configPath = Path.Combine(ParentDirectory, $"configs/wpcshrpg/{ShortSkillName}.cfg");
+            string configPath = Path.Combine(ParentDirectory, $"configs/wpcshrpg/wpcssrpg_upgrade_{ShortSkillName}.cfg");
             if (!File.Exists(configPath))
             {
                 string[] content = new string[]
@@ -481,7 +481,7 @@ namespace WpCShpRpg
             return true;
         }
 
-        public Dictionary<string, string> GetParamsFromConfig(string ModuleDirectory, string ShortSkillName)
+        public static Dictionary<string, string> GetParamsFromConfig(string ModuleDirectory, string ShortSkillName)
         {
             string? ParentDirectory = Directory.GetParent(ModuleDirectory)?.Parent?.FullName;
             Dictionary<string, string> parameters = new Dictionary<string, string>();
@@ -492,7 +492,7 @@ namespace WpCShpRpg
                 return parameters;
             }
 
-            string configPath = Path.Combine(ParentDirectory, $"configs/wpcshrpg/skills/{ShortSkillName}.cfg");
+            string configPath = Path.Combine(ParentDirectory, $"configs/wpcshrpg/skills/wpcssrpg_upgrade_{ShortSkillName}.cfg");
             if (!File.Exists(configPath))
             {
                 Server.PrintToConsole($"Ошибка: Не удалось найти файл по пути {configPath}!");
@@ -526,7 +526,7 @@ namespace WpCShpRpg
                 return false;
             }
 
-            string configPath = Path.Combine(ParentDirectory, $"configs/wpcshrpg/{ShortSkillName}.cfg");
+            string configPath = Path.Combine(ParentDirectory, $"configs/wpcshrpg/wpcssrpg_upgrade_{ShortSkillName}.cfg");
             if (!File.Exists(configPath))
             {
                 string[] content = new string[]
@@ -573,7 +573,7 @@ namespace WpCShpRpg
                 return;
             }
 
-            Dictionary<string, string> ConfigData = ConfiguraionFiles.ParseConfigFile(configPath);
+            Dictionary<string, string> ConfigData = ParseConfigFile(configPath);
             foreach (var kvp in ConfigData)
             {
                 Server.ExecuteCommand($"{kvp.Key} {kvp.Value}");

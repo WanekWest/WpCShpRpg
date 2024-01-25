@@ -2,9 +2,8 @@
 using CounterStrikeSharp.API.Core;
 using CounterStrikeSharp.API.Core.Attributes.Registration;
 using Modularity;
-using WpCShpRpg.Core.Additions;
 using WpCShpRpgCoreApi;
-using static WpCShpRpg.Core.Additions.Upgrades;
+using static WpCShpRpgCoreApi.IWpCShpRpgCoreApi;
 
 namespace WpCShpRpgSkills
 {
@@ -19,52 +18,39 @@ namespace WpCShpRpgSkills
 
         public override void Load(bool hotReload)
         {
-            if (!hotReload)
-            {
-                CheckRpgCore();
-            }
-            else
-            {
+            if (hotReload)
                 Server.PrintToConsole($"Данный скилл не поддерживает перезагрузку: wpcssrpg_upgrade_{UPGRADE_SHORTNAME}");
-            }
         }
 
         public void LoadModule(IApiProvider provider)
         {
             _api = provider.Get<IWpCShpRpgCoreApi>();
+
+            Server.PrintToConsole($"api LoadModule {UPGRADE_SHORTNAME}");
+            Server.PrintToConsole($"api LoadModule {UPGRADE_SHORTNAME}");
+            Server.PrintToConsole($"api LoadModule {UPGRADE_SHORTNAME}");
+            Server.PrintToConsole($"api LoadModule {UPGRADE_SHORTNAME}");
+
+            if (_api == null)
+            {
+                Server.PrintToConsole($"api is null {UPGRADE_SHORTNAME}");
+                Server.PrintToConsole($"api is null {UPGRADE_SHORTNAME}");
+                Server.PrintToConsole($"api is null {UPGRADE_SHORTNAME}");
+                Server.PrintToConsole($"api is null {UPGRADE_SHORTNAME}");
+                return;
+            }
+
+            _api.CssRpg_OnCoreLoaded += RpgCoreLoaded;
         }
 
-        private void CheckRpgCore()
+        private void RpgCoreLoaded()
         {
-            if (_api != null)
+            if (!_api.UpgradeExists(UPGRADE_SHORTNAME))
             {
-                try
-                {
-                    Server.PrintToConsole($"Проверка статуса загрузки ядра RPG wanek {_api.IsRpgCoreLoaded()}");
-
-                    if (!_api.IsRpgCoreLoaded())
-                    {
-                        Server.PrintToConsole("Ядро еще не загружено, повторная проверка через 2 секунды.");
-                        AddTimer(2.0f, CheckRpgCore);
-                    }
-                    else
-                    {
-                        Server.PrintToConsole("Ядро загружено, регистрация навыка Damage+");
-
-                        if (!_api.UpgradeExists(UPGRADE_SHORTNAME))
-                            _api.RegisterUpgradeType("Damage+", UPGRADE_SHORTNAME, "Deal additional damage on enemies.", 10, true, 5, 5, 10, 0, null, null);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Server.PrintToConsole(ex.Message);
-                    AddTimer(2.0f, CheckRpgCore);
-                }
-            }
-            else
-            {
-                Server.PrintToConsole("Ожидаю загрузки модуля WpCssRpg | Damage+");
-                AddTimer(2.0f, CheckRpgCore);
+                Server.PrintToConsole($"Ядро загружено, регистрация навыка {UPGRADE_SHORTNAME}");
+                Server.PrintToConsole($"Ядро загружено, регистрация навыка {UPGRADE_SHORTNAME}");
+                Server.PrintToConsole($"Ядро загружено, регистрация навыка {UPGRADE_SHORTNAME}");
+                _api.RegisterUpgradeType("Damage+", UPGRADE_SHORTNAME, "Deal additional damage on enemies.", 10, true, 5, 5, 10, 0, null, null);
             }
         }
 
@@ -77,7 +63,7 @@ namespace WpCShpRpgSkills
         [GameEventHandler]
         public HookResult PlayerHurt(EventPlayerHurt @event, GameEventInfo info)
         {
-            if (@event == null)
+            if (@event == null || _api == null)
                 return HookResult.Continue;
 
             CCSPlayerController? died = @event?.Userid;
@@ -90,7 +76,7 @@ namespace WpCShpRpgSkills
 
             int Client = (int)killer.UserId;
 
-            uint iLevel = PlayerData.GetClientUpgradeLevel(Client, UPGRADE_SHORTNAME);
+            uint iLevel = _api.GetClientUpgradeLevel(Client, UPGRADE_SHORTNAME);
             if (iLevel <= 0)
                 return HookResult.Continue;
 
@@ -100,13 +86,11 @@ namespace WpCShpRpgSkills
                     return HookResult.Continue;
 
                 InternalUpgradeInfo internalUpgradeInfo = new InternalUpgradeInfo();
-                if (!GetUpgradeByShortname(UPGRADE_SHORTNAME, ref internalUpgradeInfo))
+                if (!_api.GetUpgradeByShortname(UPGRADE_SHORTNAME, ref internalUpgradeInfo))
                 {
                     Server.PrintToConsole($"Не удалось найти скилл: {UPGRADE_SHORTNAME}");
                     return HookResult.Continue;
                 }
-
-                var ConfigData = _api.GetParamsFromConfig(_api.GetModuleDirectoryImproved(), UPGRADE_SHORTNAME);
 
                 // Additional
                 double DamagePercent = 0.0;

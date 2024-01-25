@@ -7,6 +7,7 @@ using Modularity;
 using WpCShpRpg.Core.Additions;
 using WpCShpRpgCoreApi;
 using static System.Runtime.InteropServices.JavaScript.JSType;
+using static WpCShpRpgCoreApi.IWpCShpRpgCoreApi;
 
 namespace WpCShpRpg.Core
 {
@@ -22,171 +23,189 @@ namespace WpCShpRpg.Core
         private static PlayerData playerData;
         private static Upgrades upgrades;
         private static Menu menu;
+        public static WpCShpRpgCoreApi CoreApi;
 
-        public static event Action OnRpgCoreLoaded;
-
-        public static bool RpgCoreLoaded;
-
-        public static string ModuleDirectoryImproved { get; private set; } = "";
+        public string ModuleDirectoryImproved { get; private set; } = "";
 
         public override void Load(bool hotReload)
         {
-            RpgCoreLoaded = false;
-
-            const string targetSubPath = "/addons/counterstrikesharp/plugins/ModularityPlugin";
-            int indexOfSubPath = ModuleDirectory.IndexOf(targetSubPath);
-            if (indexOfSubPath != -1)
-            {
-                // Добавляем длину targetSubPath, чтобы включить сам targetSubPath в результат
-                ModuleDirectoryImproved = ModuleDirectory.Substring(0, indexOfSubPath + targetSubPath.Length);
-            }
-
-            if (ModuleDirectoryImproved == "")
-                ModuleDirectoryImproved = ModuleDirectory;
-
-            config = new ConfiguraionFiles();
-
-            if (config.LoadModCondiguration(ModuleDirectoryImproved) == false)
-            {
-                Server.PrintToConsole("[CSSRPG] Ядро не было инициализировано!");
-                return;
-            }
-
-            config.LoadExecutionFile(ModuleDirectoryImproved);
-
-            // TODO: Меню и регистрация.
-            menu = new Menu();
-            menu.CreateRpgMenu();
-
-            // TODO: Регистрация форвардов. 
-
-
-            // TODO: Инициализация настроек, улучшений, базы.
             try
             {
-                database = new Database(config, config.LoadDatabaseConfig(ModuleDirectoryImproved));
-                database.InitDatabase();
-                database.DatabaseMaid(config.g_hCVSaveData, config.g_hCVPlayerExpire);
+                const string targetSubPath = "/addons/counterstrikesharp/plugins/ModularityPlugin";
+                int indexOfSubPath = ModuleDirectory.IndexOf(targetSubPath);
+                if (indexOfSubPath != -1)
+                {
+                    // Добавляем длину targetSubPath, чтобы включить сам targetSubPath в результат
+                    ModuleDirectoryImproved = ModuleDirectory.Substring(0, indexOfSubPath + targetSubPath.Length);
+                }
+
+                if (ModuleDirectoryImproved == "")
+                    ModuleDirectoryImproved = ModuleDirectory;
+
+                config = new ConfiguraionFiles();
+
+                if (config.LoadModCondiguration(ModuleDirectoryImproved) == false)
+                {
+                    Server.PrintToConsole("[CSSRPG] Ядро не было инициализировано!");
+                    return;
+                }
+
+                config.LoadExecutionFile(ModuleDirectoryImproved);
+
+                menu = new Menu();
+                menu.CreateRpgMenu();
+
+                try
+                {
+                    database = new Database(config, config.LoadDatabaseConfig(ModuleDirectoryImproved));
+                    database.InitDatabase();
+                    database.DatabaseMaid(config.g_hCVSaveData, config.g_hCVPlayerExpire);
+                }
+                catch (Exception ex)
+                {
+                    Server.PrintToConsole($"Ошибка при инициализации базы данных: {ex.Message}");
+                    WorkWithDatabase();
+                }
+
+                LoadCore(new PluginApis());
+
+                menu.SetConfig(ref config);
+                menu.SetDatabase(ref database);
+                database.SetMenu(ref menu);
+
+                Server.PrintToConsole("Ядро загружено 1!");
+                Server.PrintToConsole("Ядро загружено 1!");
+                Server.PrintToConsole("Ядро загружено 1!");
+                Server.PrintToConsole("Ядро загружено 1!");
+                Server.PrintToConsole("Ядро загружено 1!");
+
+                // TODO: Инициализация файлов перевода.
+
+                RegisterEventHandler<EventPlayerSpawn>(Event_OnPlayerSpawn);
+                RegisterEventHandler<EventPlayerDeath>(Event_OnPlayerDeath);
+                RegisterEventHandler<EventRoundEnd>(Event_OnRoundEnd);
+                RegisterEventHandler<EventPlayerDisconnect>(Event_OnPlayerDisconnect);
+
+                RegisterListener<Listeners.OnMapStart>(name =>
+                {
+                    playerData = new PlayerData();
+                    playerData.SetConfig(ref config);
+                    playerData.SetDatabase(ref database);
+                    menu.SetPlayerData(ref playerData);
+                    database.SetPlayerData(ref playerData);
+                    playerData.SetMenu(ref menu);
+
+                    WorkWithUpgradesClass();
+
+                    CoreApi.CssRpg_CoreLoaded();
+                });
+
+                RegisterListener<Listeners.OnClientConnected>(slot =>
+                {
+                    playerData.InitPlayerSessionStartStats(slot);
+                });
             }
             catch (Exception ex)
             {
-                Server.PrintToConsole($"Ошибка при инициализации базы данных: {ex.Message}");
-                WorkWithDatabase();
+                Server.PrintToConsole($"Ошибка ядра: {ex.Message}");
+                Server.PrintToConsole($"Ошибка ядра: {ex.Message}");
+                Server.PrintToConsole($"Ошибка ядра: {ex.Message}");
             }
-
-            menu.SetConfig(config);
-            menu.SetDatabase(database);
-            database.SetMenu(menu);
-
-            // TODO: Инициализация файлов перевода.
-
-            RegisterEventHandler<EventPlayerSpawn>(Event_OnPlayerSpawn);
-            RegisterEventHandler<EventPlayerDeath>(Event_OnPlayerDeath);
-            RegisterEventHandler<EventRoundEnd>(Event_OnRoundEnd);
-            RegisterEventHandler<EventPlayerDisconnect>(Event_OnPlayerDisconnect);
-
-            RegisterListener<Listeners.OnMapStart>(name =>
-            {
-                Server.PrintToConsole("OnMapStart OnMapStart 1");
-                playerData = new PlayerData();
-                playerData.SetConfig(config);
-                playerData.SetDatabase(database);
-                menu.SetPlayerData(playerData);
-                database.SetPlayerData(playerData);
-                playerData.SetMenu(menu);
-
-                WorkWithUpgradesClass();
-
-                RpgCoreLoaded = true;
-                OnRpgCoreLoaded?.Invoke();
-
-                LoadCore(new PluginApis());
-            });
-
-            RegisterListener<Listeners.OnClientConnected>(slot =>
-            {
-                playerData.InitPlayerSessionStartStats(slot);
-            });
         }
 
         private void WorkWithUpgradesClass()
         {
-            if (ModuleDirectoryImproved == null || ModuleDirectoryImproved == "")
-            {
-                AddTimer(2.0f, WorkWithUpgradesClass);
-            }
-            else
-            {
-                upgrades = new Upgrades(ModuleDirectoryImproved);
-                upgrades.SetConfig(config);
-                upgrades.SetDatabase(database);
-                upgrades.SetPlayerData(playerData);
-                upgrades.SetMenu(menu);
+            upgrades = new Upgrades(ModuleDirectoryImproved);
+            upgrades.SetConfig(ref config);
+            upgrades.SetDatabase(ref database);
+            upgrades.SetPlayerData(ref playerData);
+            upgrades.SetMenu(ref menu);
+            // upgrades.SetWpCShpRpgCoreApi(CoreApi);
 
-                database.SetUpgrades(upgrades);
-                playerData.SetUpgrades(upgrades);
-                menu.SetUpgrades(upgrades);
-            }
+            database.SetUpgrades(ref upgrades);
+            playerData.SetUpgrades(ref upgrades);
+            menu.SetUpgrades(ref upgrades);
 
             return;
         }
 
         private void WorkWithDatabase()
         {
-            if (ModuleDirectory == null)
-            {
-                AddTimer(2.0f, WorkWithDatabase);
-            }
-            else
-            {
-                database = new Database(config, config.LoadDatabaseConfig(ModuleDirectoryImproved));
-                database.InitDatabase();
-                database.DatabaseMaid(config.g_hCVSaveData, config.g_hCVPlayerExpire);
-            }
+            database = new Database(config, config.LoadDatabaseConfig(ModuleDirectoryImproved));
+            database.InitDatabase();
+            database.DatabaseMaid(config.g_hCVSaveData, config.g_hCVPlayerExpire);
 
             return;
         }
 
         public void LoadCore(IApiRegisterer apiRegisterer)
         {
-            Console.WriteLine("Loading WpCssRpg Core");
-            apiRegisterer.Register<IWpCShpRpgCoreApi>(new WpCShpRpgCoreApi());
+            try
+            {
+                Server.PrintToConsole("Loading WpCssRpg Core");
+                CoreApi = new WpCShpRpgCoreApi(ref config, ModuleDirectoryImproved);
+                apiRegisterer.Register<IWpCShpRpgCoreApi>(CoreApi);
+            }
+            catch (Exception ex)
+            {
+                Server.PrintToConsole($"Ошибка LoadCore: {ex.Message}");
+                Server.PrintToConsole($"Ошибка LoadCore: {ex.Message}");
+                Server.PrintToConsole($"Ошибка LoadCore: {ex.Message}");
+            }
         }
 
         [GameEventHandler]
-        public HookResult EventPlayerConnectFull(EventPlayerConnectFull @event, GameEventInfo info)
+        public HookResult EventPlayerConnect(EventPlayerConnect @event, GameEventInfo info)
         {
-            CCSPlayerController? player = @event.Userid;
-
-            if (player == null || player.UserId < 0 || !player.IsValid || player.UserId == null)
+            if (@event != null && @event.Userid != null && !@event.Userid.IsValid)
                 return HookResult.Continue;
 
+            CCSPlayerController? player = @event?.Userid;
+
+            if (player == null || player.UserId < 0 || !player.IsValid || player.UserId == null && !player.IsBot && !player.IsHLTV)
+                return HookResult.Continue;
+
+            Server.PrintToConsole("InitPlayer InitPlayer");
+            Server.PrintToConsole("InitPlayer InitPlayer");
+            Server.PrintToConsole("InitPlayer InitPlayer");
+            Server.PrintToConsole("InitPlayer InitPlayer");
+            Server.PrintToConsole("InitPlayer InitPlayer");
+            Server.PrintToConsole("InitPlayer InitPlayer");
+            Server.PrintToConsole("InitPlayer InitPlayer");
+            Server.PrintToConsole("InitPlayer InitPlayer");
+
             if (config.g_hCVEnable)
-                PlayerData.InitPlayer((int)player.UserId);
+                playerData.InitPlayer((int)player.UserId);
 
             return HookResult.Continue;
         }
 
         [GameEventHandler]
-        public HookResult OnClientAuthorized(EventPlayerConnectFull @event, GameEventInfo info)
+        public HookResult EventPlayerConnectFull(EventPlayerConnectFull @event, GameEventInfo info)
         {
-            if (@event.Userid != null && !@event.Userid.IsValid)
+            if (@event != null && @event.Userid != null && !@event.Userid.IsValid)
                 return HookResult.Continue;
 
             if (!config.g_hCVEnable)
                 return HookResult.Continue;
 
             CCSPlayerController? player = Utilities.GetPlayerFromIndex((int)@event.Userid.Index);
-            if (player == null || player.UserId <= 0 || !player.IsValid || player.UserId == null)
+            if (player == null || player.UserId <= 0 || !player.IsValid || player.UserId == null && !player.IsBot && !player.IsHLTV)
                 return HookResult.Continue;
+
+            Server.PrintToConsole($"Method OnClientAuthorized and player.SteamID is {player.SteamID} and id {(int)@event.Userid.Index}");
+            Server.PrintToConsole($"Method OnClientAuthorized and player.SteamID is {player.SteamID} and id {(int)@event.Userid.Index}");
+            Server.PrintToConsole($"Method OnClientAuthorized and player.SteamID is {player.SteamID} and id {(int)@event.Userid.Index}");
+            Server.PrintToConsole($"Method OnClientAuthorized and player.SteamID is {player.SteamID} and id {(int)@event.Userid.Index}");
+            Server.PrintToConsole($"Method OnClientAuthorized and player.SteamID is {player.SteamID} and id {(int)@event.Userid.Index}");
+            Server.PrintToConsole($"Method OnClientAuthorized and player.SteamID is {player.SteamID} and id {(int)@event.Userid.Index}");
+            Server.PrintToConsole($"Method OnClientAuthorized and player.SteamID is {player.SteamID} and id {(int)@event.Userid.Index}");
+            Server.PrintToConsole($"Method OnClientAuthorized and player.SteamID is {player.SteamID} and id {(int)@event.Userid.Index}");
 
             string query;
             if (player.IsBot)
             {
-                if (!config.g_hCVBotSaveStats)
-                    return HookResult.Continue;
-
-                if (player.IsHLTV)
+                if (!config.g_hCVBotSaveStats || player.IsHLTV)
                     return HookResult.Continue;
 
                 // Экранирование имени для безопасности запроса
@@ -214,7 +233,7 @@ namespace WpCShpRpg.Core
         {
             if (player != null && player.IsValid && !player.IsBot)
             {
-                if (Menu.IsRpgMenuCreated)
+                if (menu.IsRpgMenuCreated)
                     ChatMenus.OpenMenu(player, menu.RpgMenu);
             }
         }
@@ -224,41 +243,27 @@ namespace WpCShpRpg.Core
         {
             if (player != null && player.IsValid && !player.IsBot)
             {
-                if (Menu.IsRpgMenuCreated)
+                if (menu.IsRpgMenuCreated)
                     ChatMenus.OpenMenu(player, menu.RpgMenu);
             }
         }
 
-        [ConsoleCommand("rpgrank", "Shows your rank or the rank of the target person. rpgrank [name|steamid|#userid]")]
+        [ConsoleCommand("rpgrank", "Shows your rank")]
         public void Cmd_RPGRank(CCSPlayerController? player, CommandInfo command)
         {
-            if (player != null && player.IsValid && !player.IsBot)
+            if (player != null && player.IsValid && !player.IsBot && player.UserId != null)
             {
-                CreateRankMenu(player);
+                player.PrintToChat($"Ваш ранг {Database.GetPlayerRank(player)} из {Database.GetAmountOfRanks()}");
             }
         }
 
-        private void CreateRankMenu(CCSPlayerController? player)
-        {
-            if (player != null && player.IsValid && !player.IsBot)
-            {
-                CreateRankMenu(player);
-            }
-        }
 
         [ConsoleCommand("rpginfo", "Shows the purchased upgrades of the target person. rpginfo <name|steamid|#userid>")]
         public void Cmd_RPGInfo(CCSPlayerController? player, CommandInfo command)
         {
             if (player != null && player.IsValid && !player.IsBot)
             {
-                CreateRPGInfoMenu(player);
-            }
-        }
-
-        private void CreateRPGInfoMenu(CCSPlayerController? player)
-        {
-            if (player != null && player.IsValid && !player.IsBot)
-            {
+                // CreateRPGInfoMenu(player);
             }
         }
 
@@ -267,14 +272,7 @@ namespace WpCShpRpg.Core
         {
             if (player != null && player.IsValid && !player.IsBot)
             {
-                CreateRPGTop10Menu(player);
-            }
-        }
-
-        private void CreateRPGTop10Menu(CCSPlayerController? player)
-        {
-            if (player != null && player.IsValid && !player.IsBot)
-            {
+                // CreateRPGTop10Menu(player);
             }
         }
 
@@ -283,14 +281,7 @@ namespace WpCShpRpg.Core
         {
             if (player != null && player.IsValid && !player.IsBot)
             {
-                CreateRPGNextMenu(player);
-            }
-        }
-
-        private void CreateRPGNextMenu(CCSPlayerController? player)
-        {
-            if (player != null && player.IsValid && !player.IsBot)
-            {
+                // CreateRPGNextMenu(player);
             }
         }
 
@@ -299,14 +290,7 @@ namespace WpCShpRpg.Core
         {
             if (player != null && player.IsValid && !player.IsBot)
             {
-                CreateRPGSessionMenu(player);
-            }
-        }
-
-        private void CreateRPGSessionMenu(CCSPlayerController? player)
-        {
-            if (player != null && player.IsValid && !player.IsBot)
-            {
+                // CreateRPGSessionMenu(player);
             }
         }
 
@@ -315,14 +299,7 @@ namespace WpCShpRpg.Core
         {
             if (player != null && player.IsValid && !player.IsBot)
             {
-                CreateRPGHelpMenu(player);
-            }
-        }
-
-        private void CreateRPGHelpMenu(CCSPlayerController? player)
-        {
-            if (player != null && player.IsValid && !player.IsBot)
-            {
+                // CreateRPGHelpMenu(player);
             }
         }
 
@@ -331,16 +308,8 @@ namespace WpCShpRpg.Core
         {
             if (player != null && player.IsValid && !player.IsBot)
             {
-                CreateRPGLatestExperienceMenu(player);
+                menu.ShowLastExperianceMenuForPlayer(player);
             }
-        }
-
-        private void CreateRPGLatestExperienceMenu(CCSPlayerController? player)
-        {
-            if (player != null && player.IsValid && !player.IsBot)
-            {
-            }
-
         }
         #endregion
 
@@ -387,17 +356,34 @@ namespace WpCShpRpg.Core
         }
         #endregion
 
-        public Upgrades GetUpgradesClass()
+        public static Upgrades GetUpgradesClass()
         {
             return upgrades;
+        }
+
+        public static ConfiguraionFiles GetConfig()
+        {
+            return config;
         }
     }
 
     public class WpCShpRpgCoreApi : IWpCShpRpgCoreApi
     {
-        public bool IsRpgCoreLoaded()
+        private ConfiguraionFiles config;
+        private string ModuleDirectoryImproved;
+
+        public WpCShpRpgCoreApi(ref ConfiguraionFiles cfg, string moduleDirectoryImproved)
         {
-            return WpCShpRpg.RpgCoreLoaded;
+            config = cfg;
+            ModuleDirectoryImproved = moduleDirectoryImproved;
+        }
+
+        public event Action CssRpg_OnCoreLoaded;
+
+        public void CssRpg_CoreLoaded()
+        {
+            if (CssRpg_OnCoreLoaded != null)
+                CssRpg_OnCoreLoaded?.Invoke();
         }
 
         public bool UpgradeExists(string ShortName)
@@ -421,14 +407,124 @@ namespace WpCShpRpg.Core
             return;
         }
 
-        public Dictionary<string, string> GetParamsFromConfig(string ModuleDirectory, string ShortSkillName)
-        {
-            return GetParamsFromConfig(ModuleDirectory, ShortSkillName);
-        }
-
         public string GetModuleDirectoryImproved()
         {
-            return WpCShpRpg.ModuleDirectoryImproved;
+            return ModuleDirectoryImproved;
+        }
+
+        public bool CssRpg_IsEnabled()
+        {
+            return config.g_hCVEnable;
+        }
+
+        public event Action<int, IWpCShpRpgCoreApi.UpgradeQueryType, string>? CssRpg_UpgradeBuySell;
+
+        public void CssRpg_BuySell(int client, IWpCShpRpgCoreApi.UpgradeQueryType queryType, string UpgradeShortName)
+        {
+            if (CssRpg_UpgradeBuySell != null)
+            {
+                Server.PrintToChatAll("CssRpg_UpgradeBuySell?.Invoke(client, queryType, UpgradeShortName);");
+                CssRpg_UpgradeBuySell?.Invoke(client, queryType, UpgradeShortName);
+                Server.PrintToChatAll("end");
+            }
+        }
+
+        public uint GetClientUpgradeLevel(int client, string shortname)
+        {
+            return PlayerData.GetClientUpgradeLevel(client, shortname);
+        }
+
+        public bool GetUpgradeByShortname(string sShortName, ref InternalUpgradeInfo upgrade)
+        {
+            return Upgrades.GetUpgradeByShortname(sShortName, ref upgrade);
+        }
+
+        public event Action<int, string, uint>? OnBuyUpgrade;
+
+        public void CssRpg_OnBuyUpgrade(int client, string shortName, uint currentLevel)
+        {
+            if (OnBuyUpgrade != null)
+                OnBuyUpgrade?.Invoke(client, shortName, currentLevel);
+        }
+
+        public event Action<int, string, uint>? BuyUpgradePost;
+
+        public void CssRpg_BuyUpgradePost(int client, string shortName, uint currentLevel)
+        {
+            if (BuyUpgradePost != null)
+                BuyUpgradePost?.Invoke(client, shortName, currentLevel);
+        }
+
+        public event Action<int, string, uint>? SellUpgrade;
+
+        public void CssRpg_SellUpgrade(int client, string shortName, uint iCurrentLevel)
+        {
+            if (SellUpgrade != null)
+                SellUpgrade?.Invoke(client, shortName, iCurrentLevel);
+        }
+
+        public event Action<int, string, uint>? SellUpgradePost;
+
+        public void CssRpg_SellUpgradePost(int client, string shortName, uint currentLevel)
+        {
+            if (SellUpgradePost != null)
+                SellUpgradePost?.Invoke(client, shortName, currentLevel);
+        }
+
+        public event Action<int, uint, uint>? ActionClientCredits;
+
+        public void CssRpg_ClientCredits(int client, uint ClientCredits, uint iCredits)
+        {
+            if (ActionClientCredits != null)
+                ActionClientCredits?.Invoke(client, ClientCredits, iCredits);
+        }
+
+        public event Action<int, uint, uint>? ClientCreditsPost;
+
+        public void CssRpg_ClientCreditsPost(int client, uint iOldCredits, uint iCredits)
+        {
+            if (ClientCreditsPost != null)
+                ClientCreditsPost?.Invoke(client, iOldCredits, iCredits);
+        }
+
+        public event Action<int, uint, uint>? ActionClientLevel;
+
+        public void CssRpg_ClientLevel(int client, uint ClientLevel, uint iLevel)
+        {
+            if (ActionClientLevel != null)
+                ActionClientLevel?.Invoke(client, ClientLevel, iLevel);
+        }
+
+        public event Action<int, uint, uint>? ClientLevelPost;
+
+        public void CssRpg_ClientLevelPost(int client, uint iOldLevel, uint currentLevel)
+        {
+            if (ClientLevelPost != null)
+                ClientLevelPost?.Invoke(client, iOldLevel, currentLevel);
+        }
+
+        public event Action<int, uint, uint>? ActionClientExperience;
+
+        public void CssRpg_ClientExperience(int client, uint ClientExperience, uint iExperience)
+        {
+            if (ActionClientExperience != null)
+                ActionClientExperience?.Invoke(client, ClientExperience, iExperience);
+        }
+
+        public event Action<int, uint, uint>? ActionClientExperiencePost;
+
+        public void CssRpg_ClientExperiencePost(int client, uint ClientExperiencePost, uint currentLevel)
+        {
+            if (ActionClientExperiencePost != null)
+                ActionClientExperiencePost?.Invoke(client, ClientExperiencePost, currentLevel);
+        }
+
+        public event Action<string>? OnUpgradeRegistered;
+
+        public void CssRpg_OnUpgradeRegistered(string shortName)
+        {
+            if (OnUpgradeRegistered != null)
+                OnUpgradeRegistered?.Invoke(shortName);
         }
     }
 }

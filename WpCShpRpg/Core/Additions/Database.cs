@@ -1,9 +1,8 @@
 ﻿using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
-using CounterStrikeSharp.API.Modules.Entities;
 using MySqlConnector;
 using static WpCShpRpg.Core.Additions.PlayerData;
-using static WpCShpRpg.Core.Additions.Upgrades;
+using static WpCShpRpgCoreApi.IWpCShpRpgCoreApi;
 
 namespace WpCShpRpg.Core.Additions
 {
@@ -21,30 +20,30 @@ namespace WpCShpRpg.Core.Additions
         private static Upgrades? upgrades;
         private static Menu? menu;
 
-        private string ConnectionString = string.Empty;
+        private static string ConnectionString = string.Empty;
 
-        public Database(ConfiguraionFiles cfg, string ConnectionString)
+        public Database(ConfiguraionFiles cfg, string connectionString)
         {
             config = cfg;
 
-            this.ConnectionString = ConnectionString;
+            ConnectionString = connectionString;
             if (ConnectionString == string.Empty)
             {
                 Console.WriteLine("Ошибка в файле с базой данных!");
             }
         }
 
-        public void SetUpgrades(Upgrades upgrClass)
+        public void SetUpgrades(ref Upgrades upgrClass)
         {
             upgrades = upgrClass;
         }
 
-        public void SetMenu(Menu mn)
+        public void SetMenu(ref Menu mn)
         {
             menu = mn;
         }
 
-        public void SetPlayerData(PlayerData pData)
+        public void SetPlayerData(ref PlayerData pData)
         {
             playerData = pData;
         }
@@ -174,7 +173,7 @@ namespace WpCShpRpg.Core.Additions
                     {
                         // Keep the original bot names intact, to avoid saving renamed bots.
                         playerData.RemovePlayer(i, config.g_hCVShowMenuOnLevelDefault, config.g_hCVFadeOnLevelDefault, true);
-                        InitPlayer(i, false);
+                        playerData.InitPlayer(i, false);
 
                         if (Player.IsValid)
                             playerData.InsertPlayer(i, config.g_hCVEnable, config.g_hCVSaveData, config.g_hCVBotSaveStats);
@@ -228,7 +227,7 @@ namespace WpCShpRpg.Core.Additions
             }
         }
 
-        public uint GetPlayerRank(CCSPlayerController? player)
+        public static uint GetPlayerRank(CCSPlayerController? player)
         {
             uint CurrentPlayerRank = 0;
             using (MySqlConnection connection = new(ConnectionString))
@@ -242,7 +241,7 @@ namespace WpCShpRpg.Core.Additions
             return CurrentPlayerRank;
         }
 
-        public uint GetAmountOfRanks()
+        public static uint GetAmountOfRanks()
         {
             uint AmountOfRanks = 0;
             using (MySqlConnection connection = new(ConnectionString))
@@ -255,10 +254,10 @@ namespace WpCShpRpg.Core.Additions
             return AmountOfRanks;
         }
 
-        public void CheckUpgradeDatabaseEntry(InternalUpgradeInfo upgrade)
+        public static void CheckUpgradeDatabaseEntry(InternalUpgradeInfo upgrade)
         {
             upgrade.databaseLoading = true;
-            SaveUpgradeConfig(upgrade);
+            Upgrades.SaveUpgradeConfig(upgrade);
 
             using (MySqlConnection connection = new(ConnectionString))
             {
@@ -281,14 +280,14 @@ namespace WpCShpRpg.Core.Additions
                 {
                     if (reader.Read())
                     {
-                        g_iPlayerInfo[client].dbId = reader.GetInt32(0);
-                        g_iPlayerInfo[client].level = reader.GetUInt32(1);
-                        g_iPlayerInfo[client].experience = reader.GetUInt32(2);
-                        g_iPlayerInfo[client].credits = reader.GetUInt32(3);
-                        g_iPlayerInfo[client].lastReset = reader.GetInt32(4);
-                        g_iPlayerInfo[client].lastSeen = reader.GetInt32(5);
-                        g_iPlayerInfo[client].showMenuOnLevelup = reader.GetInt32(6) != 0;
-                        g_iPlayerInfo[client].fadeOnLevelup = reader.GetInt32(7) != 0;
+                        PlayerData.g_iPlayerInfo[client].dbId = reader.GetInt32(0);
+                        PlayerData.g_iPlayerInfo[client].level = reader.GetUInt32(1);
+                        PlayerData.g_iPlayerInfo[client].experience = reader.GetUInt32(2);
+                        PlayerData.g_iPlayerInfo[client].credits = reader.GetUInt32(3);
+                        PlayerData.g_iPlayerInfo[client].lastReset = reader.GetInt32(4);
+                        PlayerData.g_iPlayerInfo[client].lastSeen = reader.GetInt32(5);
+                        PlayerData.g_iPlayerInfo[client].showMenuOnLevelup = reader.GetInt32(6) != 0;
+                        PlayerData.g_iPlayerInfo[client].fadeOnLevelup = reader.GetInt32(7) != 0;
                     }
                 }
 
@@ -305,11 +304,11 @@ namespace WpCShpRpg.Core.Additions
 
                         if (reader.Read())
                         {
-                            g_iPlayerInfo[client].dataLoadedFromDB = true;
+                            PlayerData.g_iPlayerInfo[client].dataLoadedFromDB = true;
 
                             int upgradeId = reader.GetInt32(0);
                             InternalUpgradeInfo upgrade = upgrades.GetUpgradeByDatabaseId(upgradeId);
-                            PlayerUpgradeInfo playerupgrade = GetPlayerUpgradeInfoByIndex(client, upgrade.index);
+                            PlayerUpgradeInfo playerupgrade = PlayerData.GetPlayerUpgradeInfoByIndex(client, upgrade.index);
 
                             playerupgrade.purchasedlevel = reader.GetUInt32(1);
                             playerupgrade.selectedlevel = reader.GetUInt32(2);
@@ -317,16 +316,16 @@ namespace WpCShpRpg.Core.Additions
                             playerupgrade.visuals = reader.GetBoolean(4);
                             playerupgrade.sounds = reader.GetBoolean(5);
 
-                            playerData.SavePlayerUpgradeInfo(client, upgrade.index, playerupgrade);
+                            PlayerData.SavePlayerUpgradeInfo(client, upgrade.index, playerupgrade);
 
-                            upgrades.SetClientPurchasedUpgradeLevel(client, upgrade.index, reader.GetUInt32(1));
+                            Upgrades.SetClientPurchasedUpgradeLevel(client, upgrade.index, reader.GetUInt32(1));
 
                             // Make sure the database is sane.. People WILL temper with it manually.
                             uint SelectedLevel = reader.GetUInt32(2);
-                            if (SelectedLevel > upgrades.GetClientPurchasedUpgradeLevel(client, upgrade.index))
-                                SelectedLevel = upgrades.GetClientPurchasedUpgradeLevel(client, upgrade.index);
+                            if (SelectedLevel > Upgrades.GetClientPurchasedUpgradeLevel(client, upgrade.index))
+                                SelectedLevel = Upgrades.GetClientPurchasedUpgradeLevel(client, upgrade.index);
 
-                            upgrades.SetClientSelectedUpgradeLevel(client, upgrade.index, SelectedLevel);
+                            Upgrades.SetClientSelectedUpgradeLevel(client, upgrade.index, SelectedLevel);
                         }
 
                         playerData.CheckItemMaxLevels(client);

@@ -4,7 +4,7 @@ using CounterStrikeSharp.API.Modules.Menu;
 using CounterStrikeSharp.API.Modules.Utils;
 using WpCShpRpg.Core.Additions;
 using static WpCShpRpg.Core.Additions.PlayerData;
-using static WpCShpRpg.Core.Additions.Upgrades;
+using static WpCShpRpgCoreApi.IWpCShpRpgCoreApi;
 
 namespace WpCShpRpg
 {
@@ -20,42 +20,42 @@ namespace WpCShpRpg
         private ChatMenu ConfirmResetStatsMenu = new ChatMenu($" {ChatColors.DarkBlue}--[{ChatColors.Green}WP Выберите один из вариантов{ChatColors.DarkBlue}]--");
         private ChatMenu ConfirmSellMenu = new ChatMenu($" {ChatColors.DarkBlue}--[{ChatColors.Green}WP Выберите один из вариантов{ChatColors.DarkBlue}]--");
 
-        private static Database database;
-        private static ConfiguraionFiles config;
-        private static PlayerData playerData;
-        private static Upgrades upgrades;
+        private Database database;
+        private ConfiguraionFiles config;
+        private PlayerData playerData;
+        private Upgrades upgrades;
 
-        public static bool IsRpgMenuCreated { get; private set; } = false;
+        public bool IsRpgMenuCreated { get; private set; } = false;
 
-        public static bool IsBuyUpgradesMenuCreated { get; private set; } = false;
+        public bool IsBuyUpgradesMenuCreated { get; private set; } = false;
 
-        public static bool IsSellUpgradesMenuCreated { get; private set; } = false;
+        public bool IsSellUpgradesMenuCreated { get; private set; } = false;
 
-        public static bool IsSettingsMenuCreated { get; private set; } = false;
+        public bool IsSettingsMenuCreated { get; private set; } = false;
 
-        public static bool IsHelpMenuCreated { get; private set; } = false;
+        public bool IsHelpMenuCreated { get; private set; } = false;
 
         public Menu()
         {
 
         }
 
-        public void SetDatabase(Database db)
+        public void SetDatabase(ref Database db)
         {
             database = db;
         }
 
-        public void SetUpgrades(Upgrades upgrClass)
+        public void SetUpgrades(ref Upgrades upgrClass)
         {
             upgrades = upgrClass;
         }
 
-        public void SetConfig(ConfiguraionFiles cfg)
+        public void SetConfig(ref ConfiguraionFiles cfg)
         {
             config = cfg;
         }
 
-        public void SetPlayerData(PlayerData pData)
+        public void SetPlayerData(ref PlayerData pData)
         {
             playerData = pData;
         }
@@ -81,7 +81,7 @@ namespace WpCShpRpg
             });
             RpgMenu.AddMenuOption("Последний опыт", (player, option) =>
             {
-                CreateLaseExperianceMenuForPlayer(player);
+                ShowLastExperianceMenuForPlayer(player);
             });
             RpgMenu.AddMenuOption("Меню администратора", (player, option) =>
             {
@@ -93,7 +93,12 @@ namespace WpCShpRpg
             IsRpgMenuCreated = true;
         }
 
-        private void CreateLaseExperianceMenuForPlayer(CCSPlayerController? player)
+        public void ShowLastExperianceMenuForPlayer(CCSPlayerController? player)
+        {
+            CreateLastExperianceMenuForPlayer(player);
+        }
+
+        private void CreateLastExperianceMenuForPlayer(CCSPlayerController? player)
         {
             int client;
             if (player != null && player.UserId != null && player.UserId > 0)
@@ -144,6 +149,9 @@ namespace WpCShpRpg
         {
             int client;
             Server.PrintToChatAll($"CreatePlayerSkillsMenu {player.UserId} {player.Index} {player.DraftIndex}");
+            Server.PrintToChatAll($"CreatePlayerSkillsMenu {player.UserId} {player.Index} {player.DraftIndex}");
+            Server.PrintToChatAll($"CreatePlayerSkillsMenu {player.UserId} {player.Index} {player.DraftIndex}");
+
             if (player != null && player.UserId != null)
             {
                 client = Convert.ToInt32(player.UserId);
@@ -157,13 +165,17 @@ namespace WpCShpRpg
             ChatMenu UpgradesMenu = new ChatMenu($"{ChatColors.DarkBlue}--[{ChatColors.Green}WP Навыки{ChatColors.DarkBlue}]--");
             for (int i = 0; i < Upgrades.GetUpgradeCount(); i++)
             {
+                Server.PrintToConsole($"Upgrades.GetUpgradeCount() is {Upgrades.GetUpgradeCount()}");
+                Server.PrintToConsole($"Upgrades.GetUpgradeCount() is {Upgrades.GetUpgradeCount()}");
+                Server.PrintToConsole($"Upgrades.GetUpgradeCount() is {Upgrades.GetUpgradeCount()}");
+
                 InternalUpgradeInfo CurrentUpgrade = Upgrades.GetUpgradeByIndex(i);
 
                 if (Upgrades.IsValidUpgrade(CurrentUpgrade) == false)
                     return;
 
                 Server.PrintToChatAll($"Сканю апгрейд {i} путь 2");
-                uint ClientUpgradeLevel = playerData.GetClientSelectedUpgradeLevel(client, i);
+                uint ClientUpgradeLevel = PlayerData.GetClientSelectedUpgradeLevel(client, i);
                 if (TypeOfMethod == 2 && ClientUpgradeLevel == 0)
                     continue;
 
@@ -195,8 +207,8 @@ namespace WpCShpRpg
         {
             ChatMenu AdditionalUpgradesMenu = new ChatMenu($" {ChatColors.DarkBlue}--[{ChatColors.Green}WP {CurrentUpgrade.shortName}{ChatColors.DarkBlue}]--");
 
-            uint iItemLevel = upgrades.GetClientPurchasedUpgradeLevel(Client, CurrentUpgrade.index);
-            uint iCost = upgrades.GetUpgradeCost(CurrentUpgrade.index, iItemLevel + 1);
+            uint iItemLevel = Upgrades.GetClientPurchasedUpgradeLevel(Client, CurrentUpgrade.index);
+            uint iCost = Upgrades.GetUpgradeCost(CurrentUpgrade.index, iItemLevel + 1);
 
             if (iItemLevel >= CurrentUpgrade.maxLevel)
             {
@@ -210,21 +222,6 @@ namespace WpCShpRpg
             }
             else
             {
-                AdditionalUpgradesMenu.AddMenuOption($"Ваш уровень скилла: {iItemLevel}", (player, option) =>
-                {
-
-                });
-
-                AdditionalUpgradesMenu.AddMenuOption($"Максимальный уровень прокачки: {CurrentUpgrade.maxLevel}", (player, option) =>
-                {
-
-                });
-
-                AdditionalUpgradesMenu.AddMenuOption($"Цена улучшения: {iCost}", (player, option) =>
-                {
-
-                });
-
                 if (PlayerData.BuyClientUpgrade(Client, CurrentUpgrade.index))
                 {
                     if (config.g_hCVShowUpgradePurchase)
@@ -236,6 +233,21 @@ namespace WpCShpRpg
                 {
                     player.PrintToCenter("У вас недостаточно кредитов!");
                 }
+
+                AdditionalUpgradesMenu.AddMenuOption($"Ваш уровень скилла: {iItemLevel}", (player, option) =>
+                {
+                    option.Disabled = true;
+                });
+
+                AdditionalUpgradesMenu.AddMenuOption($"Максимальный уровень прокачки: {CurrentUpgrade.maxLevel}", (player, option) =>
+                {
+                    option.Disabled = true;
+                });
+
+                AdditionalUpgradesMenu.AddMenuOption($"Цена улучшения: {iCost}", (player, option) =>
+                {
+                    option.Disabled = true;
+                });
             }
 
             ChatMenus.OpenMenu(player, AdditionalUpgradesMenu);
@@ -304,8 +316,8 @@ namespace WpCShpRpg
 
         private void ShowAddiitionalLevelSkillSettings(CCSPlayerController player, int UpgradeIndex, InternalUpgradeInfo CurrentUpgrade, int Client)
         {
-            uint SelectedLevel = playerData.GetClientSelectedUpgradeLevel(Client, UpgradeIndex);
-            uint PurchasedLevel = playerData.GetClientPurchasedUpgradeLevel(Client, UpgradeIndex);
+            uint SelectedLevel = PlayerData.GetClientSelectedUpgradeLevel(Client, UpgradeIndex);
+            uint PurchasedLevel = PlayerData.GetClientPurchasedUpgradeLevel(Client, UpgradeIndex);
             ChatMenu AddiitionalLevelSkillSettings = new ChatMenu($" {ChatColors.DarkBlue}--[{ChatColors.Green}WP Настройка уровня навыка {CurrentUpgrade.shortName}{ChatColors.DarkBlue}]--");
             AddiitionalLevelSkillSettings.AddMenuOption($"Ваш уровень навыка: {SelectedLevel}/{PurchasedLevel}", (player, option) =>
             {
@@ -317,7 +329,7 @@ namespace WpCShpRpg
                 AddiitionalLevelSkillSettings.AddMenuOption($"Повысить уровень", (player, option) =>
                 {
                     if (config.g_hCVDisableLevelSelection == false)
-                        upgrades.SetClientSelectedUpgradeLevel(Client, UpgradeIndex, SelectedLevel + 1);
+                        Upgrades.SetClientSelectedUpgradeLevel(Client, UpgradeIndex, SelectedLevel + 1);
                 });
             }
 
@@ -326,7 +338,7 @@ namespace WpCShpRpg
                 AddiitionalLevelSkillSettings.AddMenuOption($"Понизить уровень", (player, option) =>
                 {
                     if (config.g_hCVDisableLevelSelection == false)
-                        upgrades.SetClientSelectedUpgradeLevel(Client, UpgradeIndex, SelectedLevel - 1);
+                        Upgrades.SetClientSelectedUpgradeLevel(Client, UpgradeIndex, SelectedLevel - 1);
                 });
             }
 
@@ -353,7 +365,7 @@ namespace WpCShpRpg
                 AddiitionalEffectSkillSettings.AddMenuOption(Effects, (player, option) =>
                 {
                     playerupgrade.visuals = playerupgrade.visuals ? false : true;
-                    playerData.SavePlayerUpgradeInfo(Client, UpgradeIndex, playerupgrade);
+                    PlayerData.SavePlayerUpgradeInfo(Client, UpgradeIndex, playerupgrade);
                 });
 
                 if (bHasSounds)
@@ -363,7 +375,7 @@ namespace WpCShpRpg
                 AddiitionalEffectSkillSettings.AddMenuOption(Effects, (player, option) =>
                 {
                     playerupgrade.sounds = playerupgrade.sounds ? false : true;
-                    playerData.SavePlayerUpgradeInfo(Client, UpgradeIndex, playerupgrade);
+                    PlayerData.SavePlayerUpgradeInfo(Client, UpgradeIndex, playerupgrade);
                 });
             }
 

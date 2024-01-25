@@ -5,7 +5,6 @@ D:\ПлагиныКс2\WpCShpRpg\Skills\bin\Debug\net7.0\CoreApi.dll
 D:\ПлагиныКс2\WpCShpRpg\Skills\bin\Debug\net7.0\CounterStrikeSharp.API.dll
 D:\ПлагиныКс2\WpCShpRpg\Skills\bin\Debug\net7.0\Modularity.dll
 D:\ПлагиныКс2\WpCShpRpg\Skills\bin\Debug\net7.0\WpCShpRpg.dll
-D:\ПлагиныКс2\WpCShpRpg\Skills\bin\Debug\net7.0\MySqlConnector.dll
 D:\ПлагиныКс2\WpCShpRpg\Skills\bin\Debug\net7.0\CoreApi.pdb
 D:\ПлагиныКс2\WpCShpRpg\Skills\bin\Debug\net7.0\WpCShpRpg.pdb
 D:\ПлагиныКс2\WpCShpRpg\Skills\obj\Debug\net7.0\Skill_DamagePlus.csproj.AssemblyReference.cache

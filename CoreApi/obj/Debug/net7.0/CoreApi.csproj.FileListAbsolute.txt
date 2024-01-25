@@ -1,6 +1,7 @@
 D:\ПлагиныКс2\WpCShpRpg\CoreApi\bin\Debug\net7.0\CoreApi.deps.json
 D:\ПлагиныКс2\WpCShpRpg\CoreApi\bin\Debug\net7.0\CoreApi.dll
 D:\ПлагиныКс2\WpCShpRpg\CoreApi\bin\Debug\net7.0\CoreApi.pdb
+D:\ПлагиныКс2\WpCShpRpg\CoreApi\bin\Debug\net7.0\CounterStrikeSharp.API.dll
 D:\ПлагиныКс2\WpCShpRpg\CoreApi\bin\Debug\net7.0\Modularity.dll
 D:\ПлагиныКс2\WpCShpRpg\CoreApi\obj\Debug\net7.0\CoreApi.csproj.AssemblyReference.cache
 D:\ПлагиныКс2\WpCShpRpg\CoreApi\obj\Debug\net7.0\CoreApi.GeneratedMSBuildEditorConfig.editorconfig
