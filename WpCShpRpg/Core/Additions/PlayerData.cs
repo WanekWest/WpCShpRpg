@@ -11,7 +11,12 @@ namespace WpCShpRpg.Core.Additions
         private static Upgrades upgradesClass;
         private static Database database;
         private static Menu menu;
-        // private static WpCShpRpgCoreApi CoreApi;
+
+        public static PlayerInfo[] g_iPlayerInfo;
+        public static SessionStats[] g_iPlayerSessionStartStats;
+        public static bool[] g_bFirstLoaded;
+        public static string[,] g_sOriginalBotName;
+        public static bool[] g_bBackToStatsMenu;
 
         public PlayerData()
         {
@@ -68,16 +73,16 @@ namespace WpCShpRpg.Core.Additions
 
         public struct PlayerInfo
         {
-            public uint level;
-            public uint experience;
-            public uint credits;
-            public int dbId;
-            public bool showMenuOnLevelup;
-            public bool fadeOnLevelup;
-            public bool dataLoadedFromDB;
-            public List<PlayerUpgradeInfo> upgrades;
-            public float lastReset;
-            public float lastSeen;
+            public uint level = 1;
+            public uint experience = 0;
+            public uint credits = 5;
+            public int dbId = -1;
+            public bool showMenuOnLevelup = false;
+            public bool fadeOnLevelup = false;
+            public bool dataLoadedFromDB = false;
+            public List<PlayerUpgradeInfo> upgrades = new List<PlayerUpgradeInfo>();
+            public float lastReset = 0.0f;
+            public float lastSeen = 0.0f;
 
             public PlayerInfo(uint level, uint experience, uint credits, int dbId, bool showMenuOnLevelup, bool fadeOnLevelup,
             bool dataLoadedFromDB, List<PlayerUpgradeInfo> upgrades, float lastReset, float lastSeen)
@@ -112,12 +117,6 @@ namespace WpCShpRpg.Core.Additions
                 LastExperience = new List<int>();
             }
         }
-
-        public static PlayerInfo[] g_iPlayerInfo;
-        public static SessionStats[] g_iPlayerSessionStartStats;
-        public static bool[] g_bFirstLoaded;
-        public static string[,] g_sOriginalBotName;
-        public static bool[] g_bBackToStatsMenu;
 
         public void RemovePlayer(int client, bool g_hCVShowMenuOnLevelDefault, bool g_hCVFadeOnLevelDefault, bool bKeepBotName = false)
         {
@@ -201,13 +200,11 @@ namespace WpCShpRpg.Core.Additions
 
         public void InitPlayer(int client, bool bGetBotName = true)
         {
-            Server.PrintToConsole($"Method InitPlayer and client is {client}");
-            Server.PrintToConsole($"Method InitPlayer and client is {client}");
-            Server.PrintToConsole($"Method InitPlayer and client is {client}");
             g_bFirstLoaded[client] = true;
 
             // See if the player should start at a higher level than 1?
             uint[] StartLevelCredits = GetStartLevelAndExperience();
+            Server.PrintToConsole($"StartLevelCredits is {StartLevelCredits[0]} {StartLevelCredits[1]} for client {client}");
 
             g_iPlayerInfo[client].level = StartLevelCredits[0];
             g_iPlayerInfo[client].experience = 0;
@@ -244,7 +241,7 @@ namespace WpCShpRpg.Core.Additions
                 return;
 
             string sName;
-
+            Server.PrintToConsole($"InsertPlayer for {client}");
             CCSPlayerController? player = Utilities.GetPlayerFromIndex(client);
             if (player != null && player.IsValid)
             {
@@ -481,6 +478,7 @@ namespace WpCShpRpg.Core.Additions
                     /* Give player their credits back */
                     SetClientCredits(client, GetClientCredits(client) + Upgrades.GetUpgradeCost(i, iCurrentLevel--));
                 }
+
                 if (Upgrades.GetClientPurchasedUpgradeLevel(client, i) != iCurrentLevel)
                     Upgrades.SetClientPurchasedUpgradeLevel(client, i, iCurrentLevel);
             }

@@ -220,14 +220,8 @@ namespace WpCShpRpg.Core.Additions
             CCSPlayerController? player = Utilities.GetPlayerFromIndex(client);
             if (player != null && player.IsValid && !player.IsBot)
             {
-                Server.PrintToChatAll("Работаем, братья! 1");
-                Server.PrintToChatAll("Работаем, братья! 1");
-                Server.PrintToChatAll("Работаем, братья! 1");
                 UpgradeQueryType queryType = iOldLevel < iLevel ? UpgradeQueryType.Buy : UpgradeQueryType.Sell;
                 WpCShpRpg.CoreApi.CssRpg_BuySell(client, queryType, upgrade.shortName);
-                Server.PrintToChatAll("Работаем, братья! 2");
-                Server.PrintToChatAll("Работаем, братья! 2");
-                Server.PrintToChatAll("Работаем, братья! 2");
             }
         }
 
@@ -551,7 +545,7 @@ namespace WpCShpRpg.Core.Additions
             InternalUpgradeInfo upgrade = new InternalUpgradeInfo();
             for (int i = 0; i < GetUpgradeCount(); i++)
             {
-                upgrade = GetUpgradeByIndex(0);
+                upgrade = GetUpgradeByIndex(i);
                 if (upgrade.databaseId == iDatabaseId)
                 {
                     return upgrade;

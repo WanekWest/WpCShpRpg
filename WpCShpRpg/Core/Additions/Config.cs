@@ -452,7 +452,7 @@ namespace WpCShpRpg
                 return false;
             }
 
-            string configPath = Path.Combine(ParentDirectory, $"configs/wpcshrpg/wpcssrpg_upgrade_{ShortSkillName}.cfg");
+            string configPath = Path.Combine(ParentDirectory, $"configs/wpcshrpg/skills/wpcssrpg_upgrade_{ShortSkillName}.cfg");
             if (!File.Exists(configPath))
             {
                 string[] content = new string[]
@@ -526,7 +526,7 @@ namespace WpCShpRpg
                 return false;
             }
 
-            string configPath = Path.Combine(ParentDirectory, $"configs/wpcshrpg/wpcssrpg_upgrade_{ShortSkillName}.cfg");
+            string configPath = Path.Combine(ParentDirectory, $"configs/wpcshrpg/skills/wpcssrpg_upgrade_{ShortSkillName}.cfg");
             if (!File.Exists(configPath))
             {
                 string[] content = new string[]

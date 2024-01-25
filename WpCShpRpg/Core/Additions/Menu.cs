@@ -165,38 +165,44 @@ namespace WpCShpRpg
             ChatMenu UpgradesMenu = new ChatMenu($"{ChatColors.DarkBlue}--[{ChatColors.Green}WP Навыки{ChatColors.DarkBlue}]--");
             for (int i = 0; i < Upgrades.GetUpgradeCount(); i++)
             {
-                Server.PrintToConsole($"Upgrades.GetUpgradeCount() is {Upgrades.GetUpgradeCount()}");
-                Server.PrintToConsole($"Upgrades.GetUpgradeCount() is {Upgrades.GetUpgradeCount()}");
-                Server.PrintToConsole($"Upgrades.GetUpgradeCount() is {Upgrades.GetUpgradeCount()}");
-
                 InternalUpgradeInfo CurrentUpgrade = Upgrades.GetUpgradeByIndex(i);
 
                 if (Upgrades.IsValidUpgrade(CurrentUpgrade) == false)
                     return;
 
                 Server.PrintToChatAll($"Сканю апгрейд {i} путь 2");
-                uint ClientUpgradeLevel = PlayerData.GetClientSelectedUpgradeLevel(client, i);
-                if (TypeOfMethod == 2 && ClientUpgradeLevel == 0)
-                    continue;
-
-                UpgradesMenu.AddMenuOption($"{CurrentUpgrade.shortName} [{ClientUpgradeLevel}/{CurrentUpgrade.maxLevel}]", (player, option) =>
+                try
                 {
-                    if (TypeOfMethod == 1)
+                    uint ClientUpgradeLevel = PlayerData.GetClientSelectedUpgradeLevel(client, i);
+                    if (TypeOfMethod == 2 && ClientUpgradeLevel == 0)
+                        continue;
+
+                    UpgradesMenu.AddMenuOption($"{CurrentUpgrade.shortName} [{ClientUpgradeLevel}/{CurrentUpgrade.maxLevel}]", (player, option) =>
                     {
-                        Server.PrintToChatAll($"Чекаю путь 1 передаю {i} {client}");
-                        ShowAdditionalUpgradeMenu(player, CurrentUpgrade, client);
-                    }
-                    else if (TypeOfMethod == 2)
-                    {
-                        Server.PrintToChatAll($"Чекаю путь 2");
-                        ShowSellUpgradeMenu(player, CurrentUpgrade, client);
-                    }
-                    else
-                    {
-                        Server.PrintToChatAll($"Чекаю путь 3");
-                        ShowSettingsUpgradeMenu(player, CurrentUpgrade, client);
-                    }
-                });
+                        if (TypeOfMethod == 1)
+                        {
+                            Server.PrintToChatAll($"Чекаю путь 1 передаю {i} {client}");
+                            ShowAdditionalUpgradeMenu(player, CurrentUpgrade, client);
+                        }
+                        else if (TypeOfMethod == 2)
+                        {
+                            Server.PrintToChatAll($"Чекаю путь 2");
+                            ShowSellUpgradeMenu(player, CurrentUpgrade, client);
+                        }
+                        else
+                        {
+                            Server.PrintToChatAll($"Чекаю путь 3");
+                            ShowSettingsUpgradeMenu(player, CurrentUpgrade, client);
+                        }
+                    });
+                }
+                catch (Exception ex)
+                {
+                    Server.PrintToConsole($"Вылезла ошибка при g_iPlayerInfo: {ex.Message}");
+                    Server.PrintToConsole($"Вылезла ошибка при g_iPlayerInfo: {ex.Message}");
+                    Server.PrintToConsole($"Вылезла ошибка при g_iPlayerInfo: {ex.Message}");
+                    Server.PrintToConsole($"Вылезла ошибка при g_iPlayerInfo: {ex.Message}");
+                }
             }
 
             Server.PrintToChatAll($"Начинаю показывать меню");

@@ -118,10 +118,6 @@ namespace WpCShpRpgCoreApi
 
         public bool GetUpgradeByShortname(string sShortName, ref InternalUpgradeInfo upgrade);
 
-        //
-        //
-        //
-        //
         public event Action<int, string, uint>? OnBuyUpgrade;
 
         public void CssRpg_OnBuyUpgrade(int client, string shortName, uint currentLevel);

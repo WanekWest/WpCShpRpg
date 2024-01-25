@@ -13,41 +13,19 @@ namespace Skill_ArmorRegen
         public override string ModuleName => "WpCssRpg | ArmorRegen";
         public override string ModuleVersion => "v1.0";
 
+
         private static string UPGRADE_SHORTNAME = "armorregen";
+
 
         private IWpCShpRpgCoreApi _api = null!;
 
         private double[]? _regenInterval, _intervalOnClient;
         private int[]? _regenValue;
 
-        private bool IsSkillLoaded = false;
-
         private double Interval, IntervalDecrease, RegenAmount, AmountIncrease;
         private int MaxArmor;
 
         private CounterStrikeSharp.API.Modules.Timers.Timer RoundTimer = null;
-
-        public void LoadModule(IApiProvider provider)
-        {
-            _api = provider.Get<IWpCShpRpgCoreApi>();
-
-            Server.PrintToConsole($"api LoadModule {UPGRADE_SHORTNAME}");
-            Server.PrintToConsole($"api LoadModule {UPGRADE_SHORTNAME}");
-            Server.PrintToConsole($"api LoadModule {UPGRADE_SHORTNAME}");
-            Server.PrintToConsole($"api LoadModule {UPGRADE_SHORTNAME}");
-
-            if (_api == null)
-            {
-                Server.PrintToConsole($"api is null {UPGRADE_SHORTNAME}");
-                Server.PrintToConsole($"api is null {UPGRADE_SHORTNAME}");
-                Server.PrintToConsole($"api is null {UPGRADE_SHORTNAME}");
-                Server.PrintToConsole($"api is null {UPGRADE_SHORTNAME}");
-                return;
-            }
-
-            _api.CssRpg_UpgradeBuySell += CssRpg_BuySell;
-            _api.CssRpg_OnCoreLoaded += RpgCoreLoaded;
-        }
 
         public override void Load(bool hotReload)
         {
@@ -70,15 +48,24 @@ namespace Skill_ArmorRegen
             }
         }
 
+        public void LoadModule(IApiProvider provider)
+        {
+            _api = provider.Get<IWpCShpRpgCoreApi>();
+
+            if (_api == null)
+            {
+                Server.PrintToConsole($"Ошибка загрузки модуля, данный навык не будет работать: {UPGRADE_SHORTNAME}");
+                return;
+            }
+
+            _api.CssRpg_UpgradeBuySell += CssRpg_BuySell;
+            _api.CssRpg_OnCoreLoaded += RpgCoreLoaded;
+        }
+
         private void RpgCoreLoaded()
         {
-            Server.PrintToConsole($"Ядро загружено, регистрация навыка {UPGRADE_SHORTNAME}");
-
             if (!_api.UpgradeExists(UPGRADE_SHORTNAME))
             {
-                Server.PrintToConsole($"Ядро загружено, регистрация навыка {UPGRADE_SHORTNAME}");
-                Server.PrintToConsole($"Ядро загружено, регистрация навыка {UPGRADE_SHORTNAME}");
-                Server.PrintToConsole($"Ядро загружено, регистрация навыка {UPGRADE_SHORTNAME}");
                 _api.RegisterUpgradeType("Armor regeneration", UPGRADE_SHORTNAME, "Deal additional damage on enemies.", 10, true, 5, 5, 10, 0, null, null);
             }
 
@@ -118,10 +105,7 @@ namespace Skill_ArmorRegen
                 Server.PrintToConsole($"Скилл {UPGRADE_SHORTNAME} не загружен с ошибкой: {ex.Message}!");
                 return;
             }
-
-            IsSkillLoaded = true;
         }
-
 
         [GameEventHandler]
         public HookResult EventRoundStart(EventRoundStart @event, GameEventInfo info)
@@ -154,15 +138,12 @@ namespace Skill_ArmorRegen
 
             if (playerController != null && playerController.IsValid && !playerController.IsBot && playerController.UserId != null && playerController.UserId >= 0)
             {
-                if (IsSkillLoaded)
-                {
-                    int Client = (int)playerController.UserId;
-                    Server.PrintToConsole($"Client is {Client} in skill {UPGRADE_SHORTNAME}");
-                    uint CLientUpgradeLevel = _api.GetClientUpgradeLevel(Client, UPGRADE_SHORTNAME);
-                    _regenInterval[Client] = Interval - IntervalDecrease * (CLientUpgradeLevel - 1);
-                    _regenValue[Client] = (int)(RegenAmount + AmountIncrease * (CLientUpgradeLevel - 1));
-                    _intervalOnClient[Client] = 0.0f;
-                }
+                int Client = (int)playerController.UserId;
+                Server.PrintToConsole($"Client is {Client} in skill {UPGRADE_SHORTNAME}");
+                uint CLientUpgradeLevel = _api.GetClientUpgradeLevel(Client, UPGRADE_SHORTNAME);
+                _regenInterval[Client] = Interval - IntervalDecrease * (CLientUpgradeLevel - 1);
+                _regenValue[Client] = (int)(RegenAmount + AmountIncrease * (CLientUpgradeLevel - 1));
+                _intervalOnClient[Client] = 0.0f;
             }
 
             return HookResult.Continue;

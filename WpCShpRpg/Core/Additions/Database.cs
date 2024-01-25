@@ -8,8 +8,6 @@ namespace WpCShpRpg.Core.Additions
 {
     public class Database
     {
-        string wpcshprpg_DB = "cshprpg";
-        string TBL_PLAYERS = "players";
         string TBL_PLAYERUPGRADES = "player_upgrades";
         string TBL_UPGRADES = "upgrades";
         string TBL_SETTINGS = "settings";
@@ -227,6 +225,19 @@ namespace WpCShpRpg.Core.Additions
             }
         }
 
+        public bool CheckIfPlayerExists(string query)
+        {
+            using (MySqlConnection connection = new MySqlConnection(ConnectionString))
+            {
+                connection.Open();
+                MySqlCommand command = new MySqlCommand(query, connection);
+                using (MySqlDataReader reader = command.ExecuteReader())
+                {
+                    return reader.HasRows;
+                }
+            }
+        }
+
         public static uint GetPlayerRank(CCSPlayerController? player)
         {
             uint CurrentPlayerRank = 0;
@@ -270,31 +281,39 @@ namespace WpCShpRpg.Core.Additions
 
         public void GetPlayerInfo(string sQuery, int client)
         {
-            Server.PrintToConsole("GetPlayerInfo GetPlayerInfo GetPlayerInfo!");
-
-            using (MySqlConnection connection = new(ConnectionString))
+            Server.PrintToConsole($"GetPlayerInfo GetPlayerInfo GetPlayerInfo for {client}!");
+            Server.PrintToConsole($"GetPlayerInfo GetPlayerInfo GetPlayerInfo for {client}!");
+            Server.PrintToConsole($"GetPlayerInfo GetPlayerInfo GetPlayerInfo for {client}!");
+            try
             {
-                connection.Open();
-                MySqlCommand command = new MySqlCommand(sQuery, connection);
-                using (MySqlDataReader reader = command.ExecuteReader())
+                using (MySqlConnection connection = new MySqlConnection(ConnectionString))
                 {
-                    if (reader.Read())
-                    {
-                        PlayerData.g_iPlayerInfo[client].dbId = reader.GetInt32(0);
-                        PlayerData.g_iPlayerInfo[client].level = reader.GetUInt32(1);
-                        PlayerData.g_iPlayerInfo[client].experience = reader.GetUInt32(2);
-                        PlayerData.g_iPlayerInfo[client].credits = reader.GetUInt32(3);
-                        PlayerData.g_iPlayerInfo[client].lastReset = reader.GetInt32(4);
-                        PlayerData.g_iPlayerInfo[client].lastSeen = reader.GetInt32(5);
-                        PlayerData.g_iPlayerInfo[client].showMenuOnLevelup = reader.GetInt32(6) != 0;
-                        PlayerData.g_iPlayerInfo[client].fadeOnLevelup = reader.GetInt32(7) != 0;
-                    }
-                }
-
-                string query = $"SELECT upgrade_id, purchasedlevel, selectedlevel, enabled, visuals, sounds FROM player_upgrades WHERE player_id = @playerId";
-                try
-                {
+                    connection.Open();
+                    MySqlCommand command = new MySqlCommand(sQuery, connection);
                     using (MySqlDataReader reader = command.ExecuteReader())
+                    {
+                        if (!reader.HasRows)
+                        {
+                            playerData.InsertPlayer(client, config.g_hCVEnable, config.g_hCVSaveData, config.g_hCVBotSaveStats);
+                            return;
+                        }
+
+                        if (reader.Read())
+                        {
+                            PlayerData.g_iPlayerInfo[client].dbId = reader.GetInt32(0);
+                            PlayerData.g_iPlayerInfo[client].level = reader.GetUInt32(1);
+                            PlayerData.g_iPlayerInfo[client].experience = reader.GetUInt32(2);
+                            PlayerData.g_iPlayerInfo[client].credits = reader.GetUInt32(3);
+                            PlayerData.g_iPlayerInfo[client].lastReset = reader.GetInt32(4);
+                            PlayerData.g_iPlayerInfo[client].lastSeen = reader.GetInt32(5);
+                            PlayerData.g_iPlayerInfo[client].showMenuOnLevelup = reader.GetInt32(6) != 0;
+                            PlayerData.g_iPlayerInfo[client].fadeOnLevelup = reader.GetInt32(7) != 0;
+                        }
+                    }
+
+                    MySqlCommand command2 = new MySqlCommand($"SELECT upgrade_id, purchasedlevel, selectedlevel, enabled, visuals, sounds FROM player_upgrades WHERE player_id = @playerId", connection);
+
+                    using (MySqlDataReader reader = command2.ExecuteReader())
                     {
                         if (!reader.HasRows)
                         {
@@ -330,13 +349,13 @@ namespace WpCShpRpg.Core.Additions
 
                         playerData.CheckItemMaxLevels(client);
                     }
-                }
-                catch (Exception ex)
-                {
-                    Server.PrintToConsole($"Unable to load player data: {ex.Message}");
-                }
 
-                connection.Close();
+                    connection.Close();
+                }
+            }
+            catch (Exception ex)
+            {
+                Server.PrintToConsole($"Unable to load player data: {ex.Message}");
             }
         }
     }

@@ -17,6 +17,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Skill_ArmorRegen", "..\Skil
 		{869DBE03-53A7-4831-A047-539C22DC5FD7} = {869DBE03-53A7-4831-A047-539C22DC5FD7}
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Skill_Clipsize", "..\Skill_Clipsize\Skill_Clipsize.csproj", "{CC947724-1A14-4A5D-BED1-D739DB6A6201}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -39,6 +41,10 @@ Global
 		{18E38F1D-A76A-453B-8CE6-A74691036CD4}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{18E38F1D-A76A-453B-8CE6-A74691036CD4}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{18E38F1D-A76A-453B-8CE6-A74691036CD4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CC947724-1A14-4A5D-BED1-D739DB6A6201}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CC947724-1A14-4A5D-BED1-D739DB6A6201}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CC947724-1A14-4A5D-BED1-D739DB6A6201}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CC947724-1A14-4A5D-BED1-D739DB6A6201}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

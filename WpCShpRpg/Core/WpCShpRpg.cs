@@ -18,11 +18,11 @@ namespace WpCShpRpg.Core
         public override string ModuleAuthor => "WanekWest";
         public override string ModuleDescription => "Инновационный РПГ мод для CS:2!";
 
-        private static Database database;
-        private static ConfiguraionFiles config;
-        private static PlayerData playerData;
-        private static Upgrades upgrades;
-        private static Menu menu;
+        private Database database;
+        private ConfiguraionFiles config;
+        private PlayerData playerData;
+        private Upgrades upgrades;
+        private Menu menu;
         public static WpCShpRpgCoreApi CoreApi;
 
         public string ModuleDirectoryImproved { get; private set; } = "";
@@ -72,12 +72,6 @@ namespace WpCShpRpg.Core
                 menu.SetConfig(ref config);
                 menu.SetDatabase(ref database);
                 database.SetMenu(ref menu);
-
-                Server.PrintToConsole("Ядро загружено 1!");
-                Server.PrintToConsole("Ядро загружено 1!");
-                Server.PrintToConsole("Ядро загружено 1!");
-                Server.PrintToConsole("Ядро загружено 1!");
-                Server.PrintToConsole("Ядро загружено 1!");
 
                 // TODO: Инициализация файлов перевода.
 
@@ -154,76 +148,81 @@ namespace WpCShpRpg.Core
             }
         }
 
-        [GameEventHandler]
-        public HookResult EventPlayerConnect(EventPlayerConnect @event, GameEventInfo info)
-        {
-            if (@event != null && @event.Userid != null && !@event.Userid.IsValid)
-                return HookResult.Continue;
+        //[GameEventHandler]
+        //public HookResult EventPlayerConnect(EventPlayerConnect @event, GameEventInfo info)
+        //{
+        //    Server.PrintToConsole($"InitPlayer InitPlayer 1 {@event == null} {@event.Userid == null} {@event.Bot}");
+        //    Server.PrintToConsole($"InitPlayer InitPlayer 1 {@event == null} {@event.Userid == null} {@event.Bot}");
+        //    Server.PrintToConsole($"InitPlayer InitPlayer 1 {@event == null} {@event.Userid == null} {@event.Bot}");
 
-            CCSPlayerController? player = @event?.Userid;
+        //    if (@event == null || @event.Userid == null || @event.Bot)
+        //        return HookResult.Continue;
 
-            if (player == null || player.UserId < 0 || !player.IsValid || player.UserId == null && !player.IsBot && !player.IsHLTV)
-                return HookResult.Continue;
+        //    Server.PrintToConsole($"InitPlayer InitPlayer 2 {config.g_hCVEnable}");
+        //    Server.PrintToConsole($"InitPlayer InitPlayer 2 {config.g_hCVEnable}");
+        //    Server.PrintToConsole($"InitPlayer InitPlayer 2 {config.g_hCVEnable}");
 
-            Server.PrintToConsole("InitPlayer InitPlayer");
-            Server.PrintToConsole("InitPlayer InitPlayer");
-            Server.PrintToConsole("InitPlayer InitPlayer");
-            Server.PrintToConsole("InitPlayer InitPlayer");
-            Server.PrintToConsole("InitPlayer InitPlayer");
-            Server.PrintToConsole("InitPlayer InitPlayer");
-            Server.PrintToConsole("InitPlayer InitPlayer");
-            Server.PrintToConsole("InitPlayer InitPlayer");
+        //    if (config.g_hCVEnable == false)
+        //        return HookResult.Continue;
 
-            if (config.g_hCVEnable)
-                playerData.InitPlayer((int)player.UserId);
+        //    CCSPlayerController? player = @event.Userid;
+        //    Server.PrintToConsole($"InitPlayer InitPlayer 3 {player == null} {!player.IsValid} {player.UserId == null}");
+        //    Server.PrintToConsole($"InitPlayer InitPlayer 3 {player.UserId} {player.UserId < 0}");
+        //    Server.PrintToConsole($"InitPlayer InitPlayer 3 {player.Index} {player.DraftIndex}");
+        //    if (player == null || player.UserId == null || player.UserId < 0 || !player.IsValid)
+        //        return HookResult.Continue;
 
-            return HookResult.Continue;
-        }
+        //    Server.PrintToConsole("InitPlayer InitPlayer 4");
+        //    Server.PrintToConsole("InitPlayer InitPlayer 4");
+        //    Server.PrintToConsole("InitPlayer InitPlayer 4");
+
+        //    if (config.g_hCVEnable)
+        //        playerData.InitPlayer((int)player.UserId);
+
+        //    Server.PrintToConsole("InitPlayer InitPlayer 5");
+        //    Server.PrintToConsole("InitPlayer InitPlayer 5");
+        //    Server.PrintToConsole("InitPlayer InitPlayer 5");
+
+        //    return HookResult.Continue;
+        //}
 
         [GameEventHandler]
         public HookResult EventPlayerConnectFull(EventPlayerConnectFull @event, GameEventInfo info)
         {
-            if (@event != null && @event.Userid != null && !@event.Userid.IsValid)
+            if (@event == null || @event.Userid == null || !@event.Userid.IsValid)
                 return HookResult.Continue;
 
-            if (!config.g_hCVEnable)
+            if (config.g_hCVEnable == false)
                 return HookResult.Continue;
 
             CCSPlayerController? player = Utilities.GetPlayerFromIndex((int)@event.Userid.Index);
-            if (player == null || player.UserId <= 0 || !player.IsValid || player.UserId == null && !player.IsBot && !player.IsHLTV)
+            if (player == null || player.UserId == null || player.UserId < 0 || !player.IsValid || player.IsHLTV)
                 return HookResult.Continue;
 
-            Server.PrintToConsole($"Method OnClientAuthorized and player.SteamID is {player.SteamID} and id {(int)@event.Userid.Index}");
-            Server.PrintToConsole($"Method OnClientAuthorized and player.SteamID is {player.SteamID} and id {(int)@event.Userid.Index}");
-            Server.PrintToConsole($"Method OnClientAuthorized and player.SteamID is {player.SteamID} and id {(int)@event.Userid.Index}");
-            Server.PrintToConsole($"Method OnClientAuthorized and player.SteamID is {player.SteamID} and id {(int)@event.Userid.Index}");
-            Server.PrintToConsole($"Method OnClientAuthorized and player.SteamID is {player.SteamID} and id {(int)@event.Userid.Index}");
-            Server.PrintToConsole($"Method OnClientAuthorized and player.SteamID is {player.SteamID} and id {(int)@event.Userid.Index}");
-            Server.PrintToConsole($"Method OnClientAuthorized and player.SteamID is {player.SteamID} and id {(int)@event.Userid.Index}");
-            Server.PrintToConsole($"Method OnClientAuthorized and player.SteamID is {player.SteamID} and id {(int)@event.Userid.Index}");
+            playerData.InitPlayer((int)player.UserId);
 
             string query;
             if (player.IsBot)
             {
-                if (!config.g_hCVBotSaveStats || player.IsHLTV)
+                if (config.g_hCVBotSaveStats == false)
                     return HookResult.Continue;
 
-                // Экранирование имени для безопасности запроса
+                // Экранирование имени для безопасности запроса.
                 string escapedName = player.PlayerName.Replace("'", "''");
                 Server.PrintToConsole($"escapedName is {escapedName}");
                 query = $"SELECT player_id, level, experience, credits, lastreset, lastseen, showmenu, fadescreen FROM players WHERE steamid IS NULL AND name = {escapedName} ORDER BY level DESC LIMIT 1";
             }
             else
             {
-                ulong accountId = player.SteamID;
-                if (accountId == 0)
+                // string SteamId = ConvertToSteam2((long)player.SteamID);
+                if (player.SteamID == 0)
                     return HookResult.Continue;
 
-                Server.PrintToConsole($"accountId is {accountId}");
-                query = $"SELECT player_id, level, experience, credits, lastreset, lastseen, showmenu, fadescreen FROM players WHERE steamid = {accountId} ORDER BY level DESC LIMIT 1";
+                query = $"SELECT player_id, level, experience, credits, lastreset, lastseen, showmenu, fadescreen FROM players WHERE steamid = {player.SteamID} ORDER BY level DESC LIMIT 1";
             }
 
-            database.GetPlayerInfo(query, (int)@event.Userid.Index);
+            database.GetPlayerInfo(query, (int)player.UserId);
+
             return HookResult.Continue;
         }
 
@@ -356,14 +355,13 @@ namespace WpCShpRpg.Core
         }
         #endregion
 
-        public static Upgrades GetUpgradesClass()
+        private static string ConvertToSteam2(long steamId64)
         {
-            return upgrades;
-        }
+            long steamId3 = steamId64 - 76561197960265728;
+            int y = (int)(steamId3 % 2);
+            long z = steamId3 / 2;
 
-        public static ConfiguraionFiles GetConfig()
-        {
-            return config;
+            return $"STEAM_1:{y}:{z}";
         }
     }
 
@@ -423,9 +421,7 @@ namespace WpCShpRpg.Core
         {
             if (CssRpg_UpgradeBuySell != null)
             {
-                Server.PrintToChatAll("CssRpg_UpgradeBuySell?.Invoke(client, queryType, UpgradeShortName);");
                 CssRpg_UpgradeBuySell?.Invoke(client, queryType, UpgradeShortName);
-                Server.PrintToChatAll("end");
             }
         }
 
