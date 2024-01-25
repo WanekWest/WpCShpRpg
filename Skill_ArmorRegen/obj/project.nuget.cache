@@ -1,0 +1,12 @@
+{
+  "version": 2,
+  "dgSpecHash": "yBEjrbamWzQ4mqp7s5Ytcg+FXwM+0FfE7HBWvkeJrTSmTa5xMFs5pk40mPvFzqSNSvugxvpAk56r8AiPiJSIcQ==",
+  "success": true,
+  "projectFilePath": "D:\\ПлагиныКс2\\WpCShpRpg\\Skill_ArmorRegen\\Skill_ArmorRegen.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\brovi\\.nuget\\packages\\microsoft.extensions.logging.abstractions\\7.0.1\\microsoft.extensions.logging.abstractions.7.0.1.nupkg.sha512",
+    "C:\\Users\\brovi\\.nuget\\packages\\mysqlconnector\\2.3.3\\mysqlconnector.2.3.3.nupkg.sha512",
+    "C:\\Users\\brovi\\.nuget\\packages\\newtonsoft.json\\13.0.3\\newtonsoft.json.13.0.3.nupkg.sha512"
+  ],
+  "logs": []
+}

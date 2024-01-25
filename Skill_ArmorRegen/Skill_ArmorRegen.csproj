@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net7.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CoreApi\CoreApi.csproj" />
+    <ProjectReference Include="..\WpCShpRpg\WpCShpRpg.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="CounterStrikeSharp.API">
+      <HintPath>..\CounterStrikeSharp.API.dll</HintPath>
+    </Reference>
+    <Reference Include="Modularity">
+      <HintPath>..\Modularity.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+</Project>
