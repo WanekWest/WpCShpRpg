@@ -1,0 +1,12 @@
+{
+  "version": 2,
+  "dgSpecHash": "cEnfJ0wcM9gm6TEoB35vm+vDm9LPqBDPIxoIepxglMC654RttYTcO+MpiqBjGBXlUh4jxIsz/0IfzMhEEX9wKg==",
+  "success": true,
+  "projectFilePath": "D:\\ПлагиныКс2\\WpCShpRpg\\Skill_Clipsize\\Skill_Clipsize.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\brovi\\.nuget\\packages\\microsoft.extensions.logging.abstractions\\7.0.1\\microsoft.extensions.logging.abstractions.7.0.1.nupkg.sha512",
+    "C:\\Users\\brovi\\.nuget\\packages\\mysqlconnector\\2.3.3\\mysqlconnector.2.3.3.nupkg.sha512",
+    "C:\\Users\\brovi\\.nuget\\packages\\newtonsoft.json\\13.0.3\\newtonsoft.json.13.0.3.nupkg.sha512"
+  ],
+  "logs": []
+}

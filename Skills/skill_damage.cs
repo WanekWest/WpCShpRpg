@@ -9,12 +9,17 @@ namespace WpCShpRpgSkills
 {
     public class skill_damage : BasePlugin, IModulePlugin
     {
+        public override string ModuleAuthor => "WanekWest";
         public override string ModuleName => "WpCssRpg | Damage+";
         public override string ModuleVersion => "v1.0";
+
 
         string UPGRADE_SHORTNAME = "damage";
 
         private IWpCShpRpgCoreApi _api = null!;
+
+        private double DamagePercent = 0.0;
+        private int DamageMax = 0;
 
         public override void Load(bool hotReload)
         {
@@ -26,30 +31,41 @@ namespace WpCShpRpgSkills
         {
             _api = provider.Get<IWpCShpRpgCoreApi>();
 
-            Server.PrintToConsole($"api LoadModule {UPGRADE_SHORTNAME}");
-            Server.PrintToConsole($"api LoadModule {UPGRADE_SHORTNAME}");
-            Server.PrintToConsole($"api LoadModule {UPGRADE_SHORTNAME}");
-            Server.PrintToConsole($"api LoadModule {UPGRADE_SHORTNAME}");
-
             if (_api == null)
             {
-                Server.PrintToConsole($"api is null {UPGRADE_SHORTNAME}");
-                Server.PrintToConsole($"api is null {UPGRADE_SHORTNAME}");
-                Server.PrintToConsole($"api is null {UPGRADE_SHORTNAME}");
-                Server.PrintToConsole($"api is null {UPGRADE_SHORTNAME}");
+                Server.PrintToConsole($"Ошибка загрузки модуля, данный навык не будет работать: {UPGRADE_SHORTNAME}");
                 return;
             }
 
             _api.CssRpg_OnCoreLoaded += RpgCoreLoaded;
+
+            try
+            {
+                InternalUpgradeInfo upgrade = new InternalUpgradeInfo();
+                if (_api.GetUpgradeByShortname(UPGRADE_SHORTNAME, ref upgrade))
+                {
+                    if (upgrade.parameters.TryGetValue("csshprpg_damage_percent", out string? csshprpg_damage_percent))
+                    {
+                        DamagePercent = Convert.ToDouble(csshprpg_damage_percent);
+                    }
+
+                    if (upgrade.parameters.TryGetValue("csshprpg_damage_max", out string? csshprpg_damage_max))
+                    {
+                        DamageMax = Convert.ToInt32(csshprpg_damage_max);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Server.PrintToConsole($"Скилл {UPGRADE_SHORTNAME} не загружен с ошибкой: {ex.Message}!");
+                return;
+            }
         }
 
         private void RpgCoreLoaded()
         {
             if (!_api.UpgradeExists(UPGRADE_SHORTNAME))
             {
-                Server.PrintToConsole($"Ядро загружено, регистрация навыка {UPGRADE_SHORTNAME}");
-                Server.PrintToConsole($"Ядро загружено, регистрация навыка {UPGRADE_SHORTNAME}");
-                Server.PrintToConsole($"Ядро загружено, регистрация навыка {UPGRADE_SHORTNAME}");
                 _api.RegisterUpgradeType("Damage+", UPGRADE_SHORTNAME, "Deal additional damage on enemies.", 10, true, 5, 5, 10, 0, null, null);
             }
         }
@@ -84,28 +100,6 @@ namespace WpCShpRpgSkills
             {
                 if (_api == null)
                     return HookResult.Continue;
-
-                InternalUpgradeInfo internalUpgradeInfo = new InternalUpgradeInfo();
-                if (!_api.GetUpgradeByShortname(UPGRADE_SHORTNAME, ref internalUpgradeInfo))
-                {
-                    Server.PrintToConsole($"Не удалось найти скилл: {UPGRADE_SHORTNAME}");
-                    return HookResult.Continue;
-                }
-
-                // Additional
-                double DamagePercent = 0.0;
-                int DamageMax = 0;
-                if (internalUpgradeInfo.parameters.TryGetValue("csshprpg_damage_percent", out string? csshprpg_damage_percent))
-                {
-                    DamagePercent = Convert.ToDouble(csshprpg_damage_percent);
-                    if (DamagePercent <= 0.0)
-                        return HookResult.Continue;
-                }
-
-                if (internalUpgradeInfo.parameters.TryGetValue("csshprpg_damage_max", out string? csshprpg_damage_max))
-                {
-                    DamageMax = Convert.ToInt32(csshprpg_damage_max);
-                }
 
                 int fDmgInc = (int)(@event.DmgHealth * DamagePercent * iLevel);
 
