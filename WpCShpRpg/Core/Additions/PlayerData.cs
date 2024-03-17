@@ -1,7 +1,7 @@
 ﻿using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
 using System.Collections;
-using static WpCShpRpgCoreApi.IWpCShpRpgCoreApi;
+using static WpCShpRpg.Core.Additions.Upgrades;
 
 namespace WpCShpRpg.Core.Additions
 {
@@ -11,6 +11,7 @@ namespace WpCShpRpg.Core.Additions
         private static Upgrades upgradesClass;
         private static Database database;
         private static Menu menu;
+        private static IWpCShpRpgCoreApi CoreApi;
 
         public static PlayerInfo[] g_iPlayerInfo;
         public static SessionStats[] g_iPlayerSessionStartStats;
@@ -47,11 +48,6 @@ namespace WpCShpRpg.Core.Additions
         {
             menu = mn;
         }
-
-        //public void SetWpCShpRpgCoreApi(WpCShpRpgCoreApi coreApi)
-        //{
-        //    CoreApi = coreApi;
-        //}
 
         public struct PlayerUpgradeInfo
         {
@@ -326,7 +322,7 @@ namespace WpCShpRpg.Core.Additions
 
             // See if some plugin doesn't want this player to level up this upgrade
             bool cancel = false;
-            WpCShpRpg.CoreApi.CssRpg_SellUpgrade(client, upgrade.shortName, iCurrentLevel);
+            OnBuyUpgrade?.Invoke(client, upgrade.shortName, iCurrentLevel, ref cancel);
 
             if (cancel)
                 return false;
@@ -336,7 +332,7 @@ namespace WpCShpRpg.Core.Additions
             // Also have it select the new higher upgrade level.
             Upgrades.SetClientSelectedUpgradeLevel(client, iUpgradeIndex, iCurrentLevel);
 
-            WpCShpRpg.CoreApi.CssRpg_SellUpgradePost(client, upgrade.shortName, iCurrentLevel);
+            BuyUpgradePost?.Invoke(client, upgrade.shortName, iCurrentLevel);
 
             return true;
         }
@@ -382,7 +378,7 @@ namespace WpCShpRpg.Core.Additions
             iCurrentLevel--;
 
             bool cancel = false;
-            WpCShpRpg.CoreApi.CssRpg_SellUpgrade(client, upgrade.shortName, iCurrentLevel);
+            SellUpgrade?.Invoke(client, upgrade.shortName, iCurrentLevel, ref cancel);
 
             if (cancel)
                 return false;
@@ -390,7 +386,7 @@ namespace WpCShpRpg.Core.Additions
             // Actually update the upgrade level.
             Upgrades.SetClientPurchasedUpgradeLevel(client, iUpgradeIndex, iCurrentLevel);
 
-            WpCShpRpg.CoreApi.CssRpg_SellUpgradePost(client, upgrade.shortName, iCurrentLevel);
+            SellUpgradePost?.Invoke(client, upgrade.shortName, iCurrentLevel);
 
             return true;
         }
@@ -495,7 +491,7 @@ namespace WpCShpRpg.Core.Additions
                 iCredits = 0;
 
             bool cancel = false;
-            WpCShpRpg.CoreApi.CssRpg_ClientCredits(client, g_iPlayerInfo[client].credits, iCredits);
+            ClientCredits?.Invoke(client, g_iPlayerInfo[client].credits, iCredits, ref cancel);
 
             if (cancel)
                 return false;
@@ -503,7 +499,7 @@ namespace WpCShpRpg.Core.Additions
             uint iOldCredits = g_iPlayerInfo[client].credits;
             g_iPlayerInfo[client].credits = iCredits;
 
-            WpCShpRpg.CoreApi.CssRpg_ClientCreditsPost(client, iOldCredits, iCredits);
+            ClientCreditsPost?.Invoke(client, iOldCredits, iCredits);
 
             return true;
         }
@@ -519,7 +515,7 @@ namespace WpCShpRpg.Core.Additions
                 iLevel = 1;
 
             bool cancel = false;
-            WpCShpRpg.CoreApi.CssRpg_ClientLevel(client, g_iPlayerInfo[client].level, iLevel);
+            ClientLevel?.Invoke(client, g_iPlayerInfo[client].level, iLevel, ref cancel);
 
             if (cancel)
                 return false;
@@ -527,7 +523,7 @@ namespace WpCShpRpg.Core.Additions
             uint iOldLevel = g_iPlayerInfo[client].level;
             g_iPlayerInfo[client].level = iLevel;
 
-            WpCShpRpg.CoreApi.CssRpg_ClientLevelPost(client, iOldLevel, iLevel);
+            ClientLevelPost?.Invoke(client, iOldLevel, iLevel);
 
             return true;
         }
@@ -543,7 +539,7 @@ namespace WpCShpRpg.Core.Additions
                 iExperience = 0;
 
             bool cancel = false;
-            WpCShpRpg.CoreApi.CssRpg_ClientExperience(client, g_iPlayerInfo[client].experience, iExperience);
+            ClientExperience?.Invoke(client, g_iPlayerInfo[client].experience, iExperience, ref cancel);
 
             if (cancel)
                 return false;
@@ -551,7 +547,7 @@ namespace WpCShpRpg.Core.Additions
             uint iOldExperience = g_iPlayerInfo[client].experience;
             g_iPlayerInfo[client].experience = iExperience;
 
-            WpCShpRpg.CoreApi.CssRpg_ClientExperiencePost(client, iOldExperience, iExperience);
+            ClientExperiencePost?.Invoke(client, iOldExperience, iExperience);
 
             return true;
         }
